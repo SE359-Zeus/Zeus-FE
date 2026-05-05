@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>MRP Orchestrator - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        app: '#151515', panel: '#212427', border: '#3C3F42', primary: '#0066CC',
+                        'primary-hover': '#0055AA', success: '#3E8635', danger: '#C9190B', warning: '#F0AB00',
+                        text: { main: '#FFFFFF', secondary: '#D2D2D2', muted: '#8A8D90' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['Space Grotesk', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #151515; }
+        ::-webkit-scrollbar-thumb { background: #3C3F42; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-app text-text-main font-sans antialiased overflow-hidden flex h-screen">
+
+    <!-- SideNavBar -->
+    <nav class="bg-panel fixed left-0 top-0 bottom-0 w-[260px] z-50 flex flex-col h-full border-r border-border hidden md:flex transition-all duration-300" id="sidebar">
+        <div class="px-4 py-6 border-b border-border mb-4 flex items-center gap-3">
+            <button class="text-text-muted hover:text-white shrink-0 focus:outline-none flex items-center justify-center p-1 rounded-full hover:bg-app" id="sidebarToggle">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div class="nav-text flex items-center gap-3 whitespace-nowrap overflow-hidden transition-all duration-300">
+                <span class="material-symbols-outlined text-primary shrink-0" style='font-variation-settings: "FILL" 1;'>precision_manufacturing</span>
+                <div>
+                    <div class="text-white font-bold tracking-widest text-sm uppercase font-mono">MRP Orchestrator</div>
+                    <div class="text-text-muted text-xs mt-1">V2.4.0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto overflow-x-hidden">
+            <ul class="space-y-1">
+                <li>
+                    <a class="border-l-4 border-primary bg-app text-white font-bold py-3 px-4 flex items-center gap-3 text-[13px] hover:bg-app transition-all duration-200 whitespace-nowrap" href="#">
+                        <span class="material-symbols-outlined text-primary shrink-0" style='font-variation-settings: "FILL" 1;'>dashboard</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="text-text-muted py-3 px-4 flex items-center gap-3 text-[13px] font-medium hover:bg-app hover:text-text-secondary transition-all duration-200 border-l-4 border-transparent whitespace-nowrap" href="bom_catalog.html">
+                        <span class="material-symbols-outlined shrink-0">inventory_2</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">BOM & Catalog</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="text-text-muted py-3 px-4 flex items-center gap-3 text-[13px] font-medium hover:bg-app hover:text-text-secondary transition-all duration-200 border-l-4 border-transparent whitespace-nowrap" href="inventory_ledger.html">
+                        <span class="material-symbols-outlined shrink-0">receipt_long</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">Inventory Ledger</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="text-text-muted py-3 px-4 flex items-center gap-3 text-[13px] font-medium hover:bg-app hover:text-text-secondary transition-all duration-200 border-l-4 border-transparent whitespace-nowrap" href="demand_pos.html">
+                        <span class="material-symbols-outlined shrink-0">shopping_cart</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">Demand & POs</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="text-text-muted py-3 px-4 flex items-center gap-3 text-[13px] font-medium hover:bg-app hover:text-text-secondary transition-all duration-200 border-l-4 border-transparent whitespace-nowrap" href="user_access.html">
+                        <span class="material-symbols-outlined shrink-0">manage_accounts</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">User Access</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="text-text-muted py-3 px-4 flex items-center gap-3 text-[13px] font-medium hover:bg-app hover:text-text-secondary transition-all duration-200 border-l-4 border-transparent whitespace-nowrap" href="audit_logs.html">
+                        <span class="material-symbols-outlined shrink-0">history</span>
+                        <span class="nav-text transition-all duration-300 overflow-hidden">Audit Logs</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col md:ml-[260px] min-w-[1024px] bg-app h-screen overflow-hidden transition-all duration-300" id="mainContent">
+        
+        <!-- TopNavBar -->
+        <header class="h-14 w-full bg-panel sticky top-0 z-40 border-b border-border flex items-center justify-between px-8 shrink-0">
+            <div class="flex-1 flex items-center justify-center">
+                <div class="relative w-[400px]">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+                    <input class="w-full bg-app border border-border rounded-sm text-sm pl-10 pr-4 py-1.5 focus:outline-none focus:border-primary text-text-main placeholder-text-muted h-8 transition-colors" placeholder="Search SKUs or Orders..." type="text"/>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 shrink-0">
+                <button class="text-text-muted hover:text-white transition-colors cursor-pointer p-2 rounded-full relative">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border border-panel"></span>
+                </button>
+                <button class="text-text-muted hover:text-white transition-colors cursor-pointer p-2 rounded-full">
+                    <span class="material-symbols-outlined">account_circle</span>
+                </button>
+                <button class="text-text-muted hover:text-white transition-colors cursor-pointer p-2 rounded-full">
+                    <span class="material-symbols-outlined">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Canvas Area -->
+        <main class="flex-1 overflow-auto p-6">
+            
+            <!-- Page Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-white m-0">Material Readiness Matrix</h1>
+                    <p class="text-sm text-text-secondary mt-1">Real-time build viability and component allocation.</p>
+                </div>
+                <button class="bg-primary hover:bg-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm">
+                    <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+                    Draft Purchase Orders
+                </button>
+            </div>
+
+            <!-- Data Grid Container -->
+            <div class="bg-panel border border-border rounded-sm shadow-sm overflow-hidden flex flex-col">
+                
+                <!-- Table Controls / Filters Toolbar -->
+                <div class="px-4 py-3 border-b border-border bg-app flex flex-wrap items-center gap-3">
+                    <button class="flex items-center gap-2 px-3 py-1.5 border border-border rounded-sm bg-panel text-white text-[13px] hover:bg-border transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">filter_list</span>
+                        Filter
+                    </button>
+                    <div class="h-4 w-px bg-border"></div>
+                    <span class="text-[11px] font-bold text-text-muted uppercase tracking-wider">Showing: All Open Orders</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-panel border-b border-border sticky top-0 z-10">
+                            <tr>
+                                <th class="py-3 px-3 w-10 text-center"><input class="rounded border-border bg-app accent-primary h-3.5 w-3.5" type="checkbox"/></th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Order ID</th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Target Build</th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap text-right">Qty</th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">Readiness Status</th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider min-w-[200px]">Missing Components</th>
+                                <th class="py-3 px-4 text-[11px] font-bold text-text-muted uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border bg-app">
+                            
+                            <!-- ROW 1 (Shortage) - Parent -->
+                            <tr class="hover:bg-panel transition-colors group">
+                                <td class="py-3 px-3 text-center align-top"><input checked class="rounded border-border bg-app accent-primary h-3.5 w-3.5" type="checkbox"/></td>
+                                <td class="py-3 px-4 align-top font-mono text-[13px] text-white whitespace-nowrap">ORD-901</td>
+                                <td class="py-3 px-4 align-top text-[13px] text-white font-medium">Workstation Alpha</td>
+                                <td class="py-3 px-4 align-top font-mono text-[13px] text-white text-right">5</td>
+                                <td class="py-3 px-4 align-top">
+                                    <div class="inline-flex items-center gap-1.5 bg-danger/10 border border-danger/20 text-danger px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-danger animate-pulse"></span>
+                                        Shortage
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 align-top text-[13px] text-text-secondary">
+                                    5x i7-13650HX, 10x DDR5-4800
+                                </td>
+                                <td class="py-3 px-4 align-top text-right whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            <span class="material-symbols-outlined text-[16px]">print</span>
+                                            Print Pick List
+                                        </button>
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-panel rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            Hide Components
+                                            <span class="material-symbols-outlined text-[16px]">expand_less</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- ROW 1 - EXPANDED VIEW -->
+                            <tr class="bg-[#1a1c1e] shadow-inner border-b border-border">
+                                <td></td>
+                                <td class="py-4 px-4 pb-6" colspan="6">
+                                    <div class="bg-panel border border-border rounded-sm p-4">
+                                        <h4 class="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-3 border-b border-border pb-2">Component Deficit Breakdown</h4>
+                                        <div class="grid grid-cols-4 gap-4 text-[13px]">
+                                            <!-- Headers for inset grid -->
+                                            <div class="text-[11px] font-bold text-text-muted uppercase tracking-wider col-span-1">Component SKU</div>
+                                            <div class="text-[11px] font-bold text-text-muted uppercase tracking-wider text-right">Required</div>
+                                            <div class="text-[11px] font-bold text-text-muted uppercase tracking-wider text-right">On-Hand</div>
+                                            <div class="text-[11px] font-bold text-text-muted uppercase tracking-wider text-right">Shortage</div>
+                                            
+                                            <!-- Item 1 -->
+                                            <div class="col-span-1 font-mono text-white border-t border-border pt-2">CPU-I7-13650HX</div>
+                                            <div class="text-right font-mono text-white border-t border-border pt-2">5</div>
+                                            <div class="text-right font-mono text-text-muted border-t border-border pt-2">0</div>
+                                            <div class="text-right font-mono text-danger font-bold border-t border-border pt-2">5</div>
+                                            
+                                            <!-- Item 2 -->
+                                            <div class="col-span-1 font-mono text-white border-t border-border pt-2">RAM-16G-DDR5</div>
+                                            <div class="text-right font-mono text-white border-t border-border pt-2">10</div>
+                                            <div class="text-right font-mono text-text-muted border-t border-border pt-2">4</div>
+                                            <div class="text-right font-mono text-danger font-bold border-t border-border pt-2">6</div>
+                                        </div>
+                                        <div class="mt-4 flex justify-end">
+                                            <button class="text-primary text-[13px] font-medium hover:text-white flex items-center gap-1 transition-colors">
+                                                Generate PO for Deficits
+                                                <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- ROW 2 (Clear to Build) -->
+                            <tr class="hover:bg-panel transition-colors group">
+                                <td class="py-3 px-3 text-center align-middle"><input class="rounded border-border bg-app accent-primary h-3.5 w-3.5" type="checkbox"/></td>
+                                <td class="py-3 px-4 align-middle font-mono text-[13px] text-white whitespace-nowrap">ORD-902</td>
+                                <td class="py-3 px-4 align-middle text-[13px] text-white font-medium">Gaming Rig Beta</td>
+                                <td class="py-3 px-4 align-middle font-mono text-[13px] text-white text-right">2</td>
+                                <td class="py-3 px-4 align-middle">
+                                    <div class="inline-flex items-center gap-1.5 bg-success/10 border border-success/20 text-success px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                                        Clear to Build
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 align-middle text-[13px] text-text-muted">
+                                    -
+                                </td>
+                                <td class="py-3 px-4 align-middle text-right whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            <span class="material-symbols-outlined text-[16px]">print</span>
+                                            Print Pick List
+                                        </button>
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            View Components
+                                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- ROW 3 (Clear to Build) -->
+                            <tr class="hover:bg-panel transition-colors group">
+                                <td class="py-3 px-3 text-center align-middle"><input class="rounded border-border bg-app accent-primary h-3.5 w-3.5" type="checkbox"/></td>
+                                <td class="py-3 px-4 align-middle font-mono text-[13px] text-white whitespace-nowrap">ORD-905</td>
+                                <td class="py-3 px-4 align-middle text-[13px] text-white font-medium">Office Desktop Std</td>
+                                <td class="py-3 px-4 align-middle font-mono text-[13px] text-white text-right">15</td>
+                                <td class="py-3 px-4 align-middle">
+                                    <div class="inline-flex items-center gap-1.5 bg-success/10 border border-success/20 text-success px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                                        Clear to Build
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 align-middle text-[13px] text-text-muted">
+                                    -
+                                </td>
+                                <td class="py-3 px-4 align-middle text-right whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            <span class="material-symbols-outlined text-[16px]">print</span>
+                                            Print Pick List
+                                        </button>
+                                        <button class="inline-flex items-center gap-1 px-3 py-1 border border-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-border">
+                                            View Components
+                                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination Footer -->
+                <div class="px-4 py-3 border-t border-border bg-panel flex items-center justify-between">
+                    <span class="text-[13px] text-text-muted">Showing 1-3 of 3 Orders</span>
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[13px] text-text-muted">Rows per page:</span>
+                            <select class="border border-border rounded-sm bg-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary appearance-none">
+                                <option>10</option>
+                                <option>20</option>
+                                <option>50</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2 text-[13px] text-text-secondary">
+                            Page 
+                            <select class="border border-border rounded-sm bg-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary appearance-none">
+                                <option>1</option>
+                            </select> 
+                            of 1
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="p-1 rounded-sm text-text-muted hover:bg-border transition-colors disabled:opacity-50" disabled>
+                                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                            </button>
+                            <button class="p-1 rounded-sm text-text-muted hover:bg-border transition-colors disabled:opacity-50" disabled>
+                                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const navTexts = document.querySelectorAll('.nav-text');
+            
+            sidebar.classList.toggle('w-[260px]');
+            sidebar.classList.toggle('w-[64px]');
+            
+            mainContent.classList.toggle('md:ml-[260px]');
+            mainContent.classList.toggle('md:ml-[64px]');
+            
+            navTexts.forEach(el => {
+                el.classList.toggle('opacity-0');
+                el.classList.toggle('w-0');
+            });
+        });
+    </script>
+</body>
+</html>
