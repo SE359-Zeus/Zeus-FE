@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   FolderOpen, Folder, Cpu, MemoryStick, HardDrive, Monitor, Battery,
   CircuitBoard, Pencil, Plus, Trash2, X, PlusCircle, Filter, GitBranch,
@@ -103,7 +103,10 @@ export function BomCatalogPage() {
   const [modalName, setModalName] = useState('')
   const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', qty: 1 }])
   const [nextId, setNextId] = useState(2)
-  const [skuSearch, setSkuSearch] = useState('')
+  const [activeRowId, setActiveRowId] = useState<number | null>(null)
+  const [skuQuery, setSkuQuery] = useState('')
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  const inputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
   const selectedComponent = mockCatalog[selectedSku]
 
@@ -298,60 +301,56 @@ export function BomCatalogPage() {
                   </button>
                 </div>
 
-                {/* SKU Search Input */}
-                <div className="mb-4">
-                  <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" size={14} />
-                    <input
-                      type="text"
-                      placeholder="Search SKUs..."
-                      value={skuSearch}
-                      onChange={(e) => setSkuSearch(e.target.value)}
-                      className="w-full bg-mrp-app border border-mrp-border text-white pl-9 pr-3 py-2 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
-                    />
-                  </div>
-                </div>
-
                 {/* Column headers */}
                 <div className="grid grid-cols-12 gap-2 mb-1 px-1">
-                  <span className="col-span-7 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU Selection</span>
+                  <span className="col-span-7 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU</span>
                   <span className="col-span-4 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">Qty</span>
                 </div>
                 <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                  {modalRows.map((row) => {
-                    const filteredSkus = ALL_SKUS.filter(s => s.toLowerCase().includes(skuSearch.toLowerCase()))
-                    return (
-                      <div key={row.id} className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-7">
-                          <select
-                            value={row.sku}
-                            onChange={(e) => updateRow(row.id, 'sku', e.target.value)}
-                            className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                          >
-                            <option value="">Select SKU...</option>
-                            {/* If searching, show filtered. Otherwise show all or just the selected one */}
-                            {skuSearch 
-                              ? filteredSkus.map((s) => <option key={s} value={s}>{s}</option>)
-                              : ALL_SKUS.map((s) => <option key={s} value={s}>{s}</option>)
-                            }
-                          </select>
-                        </div>
-                        <div className="col-span-4">
-                          <input
-                            type="number" min={1}
-                            value={row.qty}
-                            onChange={(e) => updateRow(row.id, 'qty', Number(e.target.value))}
-                            className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                          />
-                        </div>
-                        <div className="col-span-1 flex justify-end">
-                          <button onClick={() => removeRow(row.id)} className="text-mrp-text-muted hover:text-mrp-danger transition-colors p-1">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                  {modalRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-7">
+                        <input
+                          ref={(el) => { inputRefs.current[row.id] = el }}
+                          type="text"
+                          autoComplete="off"
+                          placeholder="Type to search SKU..."
+                          value={activeRowId === row.id ? skuQuery : row.sku}
+                          onFocus={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width })
+                            setActiveRowId(row.id)
+                            setSkuQuery(row.sku)
+                          }}
+                          onChange={(e) => {
+                            setSkuQuery(e.target.value)
+                            setActiveRowId(row.id)
+                            updateRow(row.id, 'sku', '')
+                            // Update position in case layout shifted
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width })
+                          }}
+                          onBlur={() => setTimeout(() => setActiveRowId(null), 150)}
+                          className={`w-full bg-mrp-app border text-white px-2 py-2 text-[13px] font-mono focus:outline-none rounded-sm placeholder:text-mrp-text-muted placeholder:font-sans ${
+                            row.sku ? 'border-mrp-primary/50' : 'border-mrp-border'
+                          }`}
+                        />
                       </div>
-                    )
-                  })}
+                      <div className="col-span-4">
+                        <input
+                          type="number" min={1}
+                          value={row.qty}
+                          onChange={(e) => updateRow(row.id, 'qty', Number(e.target.value))}
+                          className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <button onClick={() => removeRow(row.id)} className="text-mrp-text-muted hover:text-mrp-danger transition-colors p-1">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -373,6 +372,37 @@ export function BomCatalogPage() {
           </div>
         </div>
       )}
+
+      {/* Fixed-position SKU dropdown — rendered outside all overflow containers */}
+      {showModal && activeRowId !== null && dropdownPos && (() => {
+        const filteredSkus = ALL_SKUS.filter(s => s.toLowerCase().includes(skuQuery.toLowerCase()))
+        return (
+          <div
+            className="fixed z-[9999] bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl max-h-48 overflow-y-auto"
+            style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
+          >
+            {filteredSkus.length > 0 ? filteredSkus.map((s) => (
+              <div
+                key={s}
+                onMouseDown={() => {
+                  updateRow(activeRowId, 'sku', s)
+                  setActiveRowId(null)
+                  setSkuQuery('')
+                }}
+                className={`px-3 py-2 text-[12px] font-mono cursor-pointer transition-colors ${
+                  s === (modalRows.find(r => r.id === activeRowId)?.sku)
+                    ? 'bg-mrp-primary text-white'
+                    : 'text-mrp-text-secondary hover:bg-mrp-app hover:text-white'
+                }`}
+              >
+                {s}
+              </div>
+            )) : (
+              <div className="px-3 py-3 text-[12px] text-mrp-text-muted">No matching SKUs</div>
+            )}
+          </div>
+        )
+      })()}
     </>
   )
 }
