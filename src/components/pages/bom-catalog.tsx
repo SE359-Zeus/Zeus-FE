@@ -17,115 +17,80 @@ interface ModalRow { id: number; sku: string; qty: number }
 
 const mockAssemblies: Assembly[] = [
   {
-    id: '1', name: 'Dell XPS 15 (9530)',
+    id: '1', name: 'Zeus Workstation X1',
     components: [
-      { sku: 'CPU-I7-13700H', qty: 1, icon: Cpu },
-      { sku: 'RAM-16G-DDR5-5600', qty: 2, icon: MemoryStick },
-      { sku: 'SSD-1T-NVME-GEN4', qty: 1, icon: HardDrive },
-      { sku: 'DISP-15-4K-OLED', qty: 1, icon: Monitor },
-      { sku: 'BAT-86WHR', qty: 1, icon: Battery },
-      { sku: 'MB-XPS15-9530', qty: 1, icon: CircuitBoard },
+      { sku: 'SOC-XM100-PRO', qty: 1, icon: Cpu },
+      { sku: 'RAM-64G-DDR5', qty: 2, icon: MemoryStick },
+      { sku: 'SSD-2T-NVME', qty: 1, icon: HardDrive },
+      { sku: 'DISP-OLED-16', qty: 1, icon: Monitor },
+      { sku: 'BATT-LIPO-99W', qty: 1, icon: Battery },
+      { sku: 'MB-ZEUS-X1', qty: 1, icon: CircuitBoard },
     ],
   },
   {
-    id: '2', name: 'ThinkPad X1 Carbon Gen 11',
+    id: '2', name: 'Titan Gaming Pro',
     components: [
-      { sku: 'CPU-I7-1365U', qty: 1, icon: Cpu },
-      { sku: 'RAM-16G-DDR5-5600', qty: 1, icon: MemoryStick },
-      { sku: 'SSD-512G-NVME-GEN4', qty: 1, icon: HardDrive },
-      { sku: 'DISP-14-2K-IPS', qty: 1, icon: Monitor },
-      { sku: 'BAT-57WHR', qty: 1, icon: Battery },
-      { sku: 'MB-X1C-GEN11', qty: 1, icon: CircuitBoard },
+      { sku: 'SOC-XM100-ULTRA', qty: 1, icon: Cpu },
+      { sku: 'RAM-32G-DDR5', qty: 2, icon: MemoryStick },
+      { sku: 'SSD-1T-NVME', qty: 1, icon: HardDrive },
+      { sku: 'GPU-RTX5080-M', qty: 1, icon: CircuitBoard },
+      { sku: 'DISP-OLED-15', qty: 1, icon: Monitor },
+      { sku: 'BATT-LIPO-80W', qty: 1, icon: Battery },
     ],
   },
   {
-    id: '3', name: 'ASUS ROG Zephyrus G14 (2024)',
+    id: '3', name: 'Aero Ultrabook S',
     components: [
-      { sku: 'CPU-R9-7940HS', qty: 1, icon: Cpu },
-      { sku: 'RAM-32G-DDR5-5600', qty: 2, icon: MemoryStick },
-      { sku: 'SSD-1T-NVME-GEN4', qty: 1, icon: HardDrive },
-      { sku: 'GPU-RX7600S', qty: 1, icon: CircuitBoard },
-      { sku: 'DISP-14-2K-IPS', qty: 1, icon: Monitor },
-      { sku: 'BAT-72WHR', qty: 1, icon: Battery },
+      { sku: 'SOC-XM100-LT', qty: 1, icon: Cpu },
+      { sku: 'RAM-16G-DDR5', qty: 1, icon: MemoryStick },
+      { sku: 'SSD-512G-NVME', qty: 1, icon: HardDrive },
+      { sku: 'DISP-IPS-13', qty: 1, icon: Monitor },
+      { sku: 'BATT-LIPO-50W', qty: 1, icon: Battery },
+      { sku: 'MB-AERO-S', qty: 1, icon: CircuitBoard },
     ],
   },
 ]
 
 const mockCatalog: Record<string, CatalogComponent> = {
-  'CPU-I7-13700H': {
-    sku: 'CPU-I7-13700H', name: 'Intel Core i7-13700H Processor', type: 'Raw Material',
-    description: '13th Gen Intel® Core™ i7-13700H, 24MB cache, 14 cores, 20 threads, up to 5.00 GHz Turbo. Optimized for high-performance mobile workstations.',
-    unitCost: '$452.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 1 }],
+  'SOC-XM100-PRO': {
+    sku: 'SOC-XM100-PRO', name: 'Zeus SOC XM100 Pro (14-Core)', type: 'Raw Material',
+    description: 'High-performance system-on-chip with 14 neural cores and integrated ray-tracing units.',
+    unitCost: '$580.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 1 }],
   },
-  'RAM-16G-DDR5-5600': {
-    sku: 'RAM-16G-DDR5-5600', name: '16GB DDR5-5600 SODIMM', type: 'Raw Material',
-    description: '16GB DDR5-5600MHz SODIMM, CL46, 1.1V. Compatible with 12th/13th Gen Intel mobile platforms.',
-    unitCost: '$68.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 2 }, { assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }],
+  'RAM-64G-DDR5': {
+    sku: 'RAM-64G-DDR5', name: '64GB DDR5-6400 ECC SO-DIMM', type: 'Raw Material',
+    description: 'Enterprise-grade error-correcting memory for workstation reliability.',
+    unitCost: '$210.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 2 }],
   },
-  'SSD-1T-NVME-GEN4': {
-    sku: 'SSD-1T-NVME-GEN4', name: '1TB NVMe PCIe Gen4 M.2 SSD', type: 'Raw Material',
-    description: 'PCIe Gen4x4 NVMe M.2 2280. Up to 7,400MB/s read, 6,900MB/s write. AES-256 hardware encryption.',
-    unitCost: '$89.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 1 }, { assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 1 }],
+  'SSD-2T-NVME': {
+    sku: 'SSD-2T-NVME', name: '2TB NVMe Gen5 Enterprise SSD', type: 'Raw Material',
+    description: 'Ultra-fast storage with 12,000MB/s sustained read speeds.',
+    unitCost: '$185.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 1 }],
   },
-  'DISP-15-4K-OLED': {
-    sku: 'DISP-15-4K-OLED', name: '15.6" 4K OLED Display Panel', type: 'Raw Material',
-    description: 'Samsung OLED 3840×2400, 120Hz, 0.2ms, 100% DCI-P3, 400nit peak, DisplayHDR True Black 500.',
-    unitCost: '$310.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 1 }],
+  'DISP-OLED-16': {
+    sku: 'DISP-OLED-16', name: '16" 4K ProArt OLED Panel', type: 'Raw Material',
+    description: '120Hz OLED with 100% Adobe RGB coverage and Delta E < 1 calibration.',
+    unitCost: '$420.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 1 }],
   },
-  'BAT-86WHR': {
-    sku: 'BAT-86WHR', name: '86 Whr 6-Cell Li-Ion Battery', type: 'Raw Material',
-    description: '86 Whr 6-cell Li-Ion, 11.4V, integrated BMS with thermal protection. Up to 13h typical usage.',
-    unitCost: '$95.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 1 }],
+  'BATT-LIPO-99W': {
+    sku: 'BATT-LIPO-99W', name: '99.9Wh High-Density Li-Po Battery', type: 'Raw Material',
+    description: 'Maximum flight-safe capacity with advanced thermal management.',
+    unitCost: '$115.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 1 }],
   },
-  'MB-XPS15-9530': {
-    sku: 'MB-XPS15-9530', name: 'Dell XPS 15 9530 Mainboard', type: 'Raw Material',
-    description: 'OEM mainboard for XPS 15 9530. Dual DDR5 SO-DIMM, 2× M.2 Gen4, Thunderbolt 4, Wi-Fi 6E.',
-    unitCost: '$520.00', whereUsed: [{ assembly: 'Dell XPS 15 (9530)', qty: 1 }],
+  'MB-ZEUS-X1': {
+    sku: 'MB-ZEUS-X1', name: 'Zeus X1 Titanium Mainboard', type: 'Raw Material',
+    description: 'Custom 12-layer PCB with gold-plated connectors and liquid metal support.',
+    unitCost: '$650.00', whereUsed: [{ assembly: 'Zeus Workstation X1', qty: 1 }],
   },
-  'CPU-I7-1365U': {
-    sku: 'CPU-I7-1365U', name: 'Intel Core i7-1365U Processor', type: 'Raw Material',
-    description: '13th Gen Core™ i7-1365U, 12MB cache, 10 cores, up to 5.20 GHz. 15W TDP for ultra-thin business.',
-    unitCost: '$298.00', whereUsed: [{ assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }],
+  'GPU-RTX5080-M': {
+    sku: 'GPU-RTX5080-M', name: 'NVIDIA RTX 5080 Mobile (16GB)', type: 'Raw Material',
+    description: 'Next-gen Blackwell architecture for extreme mobile gaming performance.',
+    unitCost: '$890.00', whereUsed: [{ assembly: 'Titan Gaming Pro', qty: 1 }],
   },
-  'SSD-512G-NVME-GEN4': {
-    sku: 'SSD-512G-NVME-GEN4', name: '512GB NVMe PCIe Gen4 M.2 SSD', type: 'Raw Material',
-    description: 'PCIe Gen4x4 NVMe M.2 2280. Up to 7,000MB/s read, 5,500MB/s write. Power-loss protection.',
-    unitCost: '$49.00', whereUsed: [{ assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }],
-  },
-  'DISP-14-2K-IPS': {
-    sku: 'DISP-14-2K-IPS', name: '14" 2K IPS Anti-Glare Display', type: 'Raw Material',
-    description: 'IPS 2560×1600, 60Hz, 400nit, 100% sRGB, anti-glare. TÜV Rheinland low blue-light certified.',
-    unitCost: '$185.00', whereUsed: [{ assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }, { assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 1 }],
-  },
-  'BAT-57WHR': {
-    sku: 'BAT-57WHR', name: '57 Whr 4-Cell Li-Polymer Battery', type: 'Raw Material',
-    description: '57 Whr, 15.44V. Rapid Charge 0–80% in ~1hr. Compatible with 65W and 135W USB-C PD.',
-    unitCost: '$72.00', whereUsed: [{ assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }],
-  },
-  'MB-X1C-GEN11': {
-    sku: 'MB-X1C-GEN11', name: 'ThinkPad X1 Carbon Gen 11 Mainboard', type: 'Raw Material',
-    description: 'OEM mainboard for X1 Carbon Gen 11. Single DDR5 SO-DIMM, 2× M.2 2280, Thunderbolt 4.',
-    unitCost: '$480.00', whereUsed: [{ assembly: 'ThinkPad X1 Carbon Gen 11', qty: 1 }],
-  },
-  'CPU-R9-7940HS': {
-    sku: 'CPU-R9-7940HS', name: 'AMD Ryzen 9 7940HS Processor', type: 'Raw Material',
-    description: 'Ryzen™ 9 7940HS, 8C/16T, up to 5.2GHz, 16MB L3. TSMC 4nm. Radeon 780M iGPU. 35–54W TDP.',
-    unitCost: '$389.00', whereUsed: [{ assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 1 }],
-  },
-  'RAM-32G-DDR5-5600': {
-    sku: 'RAM-32G-DDR5-5600', name: '32GB DDR5-5600 SODIMM', type: 'Raw Material',
-    description: '32GB DDR5-5600MHz SODIMM, CL46, 1.1V. XMP 3.0 / EXPO profile. For gaming and creator laptops.',
-    unitCost: '$128.00', whereUsed: [{ assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 2 }],
-  },
-  'GPU-RX7600S': {
-    sku: 'GPU-RX7600S', name: 'AMD Radeon RX 7600S Mobile GPU', type: 'Raw Material',
-    description: 'RDNA 3, 8GB GDDR6, 128-bit bus, 100W TGP. DirectX 12 Ultimate, AV1 encode, FSR 3.0.',
-    unitCost: '$290.00', whereUsed: [{ assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 1 }],
-  },
-  'BAT-72WHR': {
-    sku: 'BAT-72WHR', name: '72 Whr 4-Cell Li-Polymer Battery', type: 'Raw Material',
-    description: '72 Whr, 15.4V. Up to 10h runtime. 240W USB-C PD fast charge, 0–50% in 30 minutes.',
-    unitCost: '$88.00', whereUsed: [{ assembly: 'ASUS ROG Zephyrus G14 (2024)', qty: 1 }],
+  'SOC-XM100-ULTRA': {
+    sku: 'SOC-XM100-ULTRA', name: 'Zeus SOC XM100 Ultra (24-Core)', type: 'Raw Material',
+    description: 'Flagship SOC with 24 high-performance cores for ultimate multitasking.',
+    unitCost: '$920.00', whereUsed: [{ assembly: 'Titan Gaming Pro', qty: 1 }],
   },
 }
 
@@ -133,11 +98,12 @@ const ALL_SKUS = Object.keys(mockCatalog)
 
 export function BomCatalogPage() {
   const [selectedAssemblyId, setSelectedAssemblyId] = useState('1')
-  const [selectedSku, setSelectedSku] = useState('CPU-I7-13700H')
+  const [selectedSku, setSelectedSku] = useState('SOC-XM100-PRO')
   const [showModal, setShowModal] = useState(false)
   const [modalName, setModalName] = useState('')
   const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', qty: 1 }])
   const [nextId, setNextId] = useState(2)
+  const [skuSearch, setSkuSearch] = useState('')
 
   const selectedComponent = mockCatalog[selectedSku]
 
@@ -331,39 +297,61 @@ export function BomCatalogPage() {
                     <PlusCircle size={13} /> Add Component
                   </button>
                 </div>
+
+                {/* SKU Search Input */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search SKUs..."
+                      value={skuSearch}
+                      onChange={(e) => setSkuSearch(e.target.value)}
+                      className="w-full bg-mrp-app border border-mrp-border text-white pl-9 pr-3 py-2 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
+                    />
+                  </div>
+                </div>
+
                 {/* Column headers */}
                 <div className="grid grid-cols-12 gap-2 mb-1 px-1">
-                  <span className="col-span-7 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU</span>
+                  <span className="col-span-7 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU Selection</span>
                   <span className="col-span-4 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider">Qty</span>
                 </div>
                 <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                  {modalRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-7">
-                        <select
-                          value={row.sku}
-                          onChange={(e) => updateRow(row.id, 'sku', e.target.value)}
-                          className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                        >
-                          <option value="">Select SKU...</option>
-                          {ALL_SKUS.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                  {modalRows.map((row) => {
+                    const filteredSkus = ALL_SKUS.filter(s => s.toLowerCase().includes(skuSearch.toLowerCase()))
+                    return (
+                      <div key={row.id} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-7">
+                          <select
+                            value={row.sku}
+                            onChange={(e) => updateRow(row.id, 'sku', e.target.value)}
+                            className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                          >
+                            <option value="">Select SKU...</option>
+                            {/* If searching, show filtered. Otherwise show all or just the selected one */}
+                            {skuSearch 
+                              ? filteredSkus.map((s) => <option key={s} value={s}>{s}</option>)
+                              : ALL_SKUS.map((s) => <option key={s} value={s}>{s}</option>)
+                            }
+                          </select>
+                        </div>
+                        <div className="col-span-4">
+                          <input
+                            type="number" min={1}
+                            value={row.qty}
+                            onChange={(e) => updateRow(row.id, 'qty', Number(e.target.value))}
+                            className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                          />
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+                          <button onClick={() => removeRow(row.id)} className="text-mrp-text-muted hover:text-mrp-danger transition-colors p-1">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-span-4">
-                        <input
-                          type="number" min={1}
-                          value={row.qty}
-                          onChange={(e) => updateRow(row.id, 'qty', Number(e.target.value))}
-                          className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <button onClick={() => removeRow(row.id)} className="text-mrp-text-muted hover:text-mrp-danger transition-colors p-1">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>

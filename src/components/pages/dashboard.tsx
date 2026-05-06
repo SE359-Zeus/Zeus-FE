@@ -17,53 +17,38 @@ interface OrderRow {
 const mockOrders: OrderRow[] = [
   {
     id: '1',
-    orderId: 'ORD-901',
-    targetBuild: 'Dell XPS 15 (9530)',
-    qty: 5,
+    orderId: 'ORD-101',
+    targetBuild: 'Zeus Workstation X1',
+    qty: 10,
     status: 'shortage',
-    missingComponents: '5x CPU-I7-13700H, 10x RAM-16G-DDR5',
+    missingComponents: '10x SOC-XM100-PRO, 20x RAM-64G-DDR5',
     components: [
-      { sku: 'CPU-I7-13700H', required: 5, onHand: 0, shortage: 5 },
-      { sku: 'RAM-16G-DDR5-5600', required: 10, onHand: 4, shortage: 6 },
+      { sku: 'SOC-XM100-PRO', required: 10, onHand: 0, shortage: 10 },
+      { sku: 'RAM-64G-DDR5', required: 20, onHand: 5, shortage: 15 },
     ],
   },
   {
     id: '2',
-    orderId: 'ORD-902',
-    targetBuild: 'ASUS ROG Zephyrus G14',
-    qty: 2,
+    orderId: 'ORD-102',
+    targetBuild: 'Titan Gaming Pro',
+    qty: 5,
     status: 'clear',
     missingComponents: '-',
     components: [
-      { sku: 'CPU-R9-7940HS', required: 2, onHand: 5, shortage: 0 },
-      { sku: 'RAM-32G-DDR5-5600', required: 2, onHand: 8, shortage: 0 },
-      { sku: 'GPU-RX7600S', required: 2, onHand: 3, shortage: 0 },
+      { sku: 'GPU-RTX5080-M', required: 5, onHand: 12, shortage: 0 },
+      { sku: 'PSU-GAN-240W', required: 5, onHand: 8, shortage: 0 },
     ],
   },
   {
     id: '3',
-    orderId: 'ORD-905',
-    targetBuild: 'ThinkPad X1 Carbon Gen 11',
-    qty: 15,
+    orderId: 'ORD-103',
+    targetBuild: 'Aero Ultrabook S',
+    qty: 25,
     status: 'clear',
     missingComponents: '-',
     components: [
-      { sku: 'CPU-I7-1365U', required: 15, onHand: 20, shortage: 0 },
-      { sku: 'RAM-16G-DDR5-5600', required: 15, onHand: 30, shortage: 0 },
-      { sku: 'SSD-1T-NVME-GEN4', required: 15, onHand: 18, shortage: 0 },
-    ],
-  },
-  {
-    id: '4',
-    orderId: 'ORD-907',
-    targetBuild: 'Dell XPS 15 (9530) Pro',
-    qty: 3,
-    status: 'shortage',
-    missingComponents: '3x MB-XPS15-9530, 12x RAM-32G-DDR5',
-    components: [
-      { sku: 'MB-XPS15-9530', required: 3, onHand: 1, shortage: 2 },
-      { sku: 'RAM-32G-DDR5-5600', required: 12, onHand: 4, shortage: 8 },
-      { sku: 'PSU-140W-GAN', required: 3, onHand: 3, shortage: 0 },
+      { sku: 'SOC-XM100-LT', required: 25, onHand: 30, shortage: 0 },
+      { sku: 'BATT-LIPO-99W', required: 25, onHand: 40, shortage: 0 },
     ],
   },
 ]
@@ -80,7 +65,7 @@ const statusConfig = {
     bg: 'bg-mrp-success/10',
     border: 'border-mrp-success/20',
     text: 'text-mrp-success',
-    label: 'Clear to Build',
+    label: 'Ready to Build',
     pulse: false,
   },
   partial: {
@@ -107,24 +92,24 @@ const kpiCards = [
   },
   {
     label: 'Components In Shortage',
-    value: '14',
+    value: '24',
     valueClass: 'text-mrp-danger',
     accent: 'border-l-4 border-l-mrp-danger',
     badge: <span className="animate-pulse flex h-2 w-2 rounded-full bg-mrp-danger" />,
   },
   {
-    label: 'Orders Clear to Build',
-    value: '852',
-    valueClass: 'text-mrp-success',
-    accent: 'border-l-4 border-l-mrp-success',
-    badge: <span className="text-[10px] text-mrp-text-muted">68% of Total</span>,
+    label: 'Shortage Blocked Orders',
+    value: '396',
+    valueClass: 'text-mrp-danger',
+    accent: 'border-l-4 border-l-mrp-danger',
+    badge: <span className="text-[10px] text-mrp-text-muted">32% of Total</span>,
   },
   {
-    label: 'POs Pending Arrival',
-    value: '29',
-    valueClass: 'text-mrp-warning',
-    accent: 'border-l-4 border-l-mrp-warning',
-    badge: <span className="text-[10px] text-mrp-text-muted">ETA &lt; 48h</span>,
+    label: 'Supply Readiness',
+    value: '88.4%',
+    valueClass: 'text-mrp-success',
+    accent: 'border-l-4 border-l-mrp-success',
+    badge: <span className="text-[10px] text-mrp-text-muted">Target: 95%</span>,
   },
 ]
 
@@ -155,9 +140,9 @@ export function DashboardPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white m-0">Material Requirements Overview</h1>
+          <h1 className="text-2xl font-bold text-white m-0">Orchestrator Dashboard</h1>
           <p className="text-sm text-mrp-text-muted mt-1">
-            Real-time supply chain monitoring for active assembly lines.
+            Real-time material readiness and production blockage monitoring.
           </p>
         </div>
         <div className="flex gap-3">
@@ -169,11 +154,11 @@ export function DashboardPage() {
             Export Report
           </button>
           <button
-            onClick={() => toast.success('Purchase Orders Drafted', { description: '3 POs created for deficit components' })}
+            onClick={() => toast.success('Purchase Orders Drafted', { description: '8 POs created for deficit components' })}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
           >
             <ShoppingCart size={16} />
-            Create Draft PO
+            Generate Shortage POs
           </button>
         </div>
       </div>
@@ -196,84 +181,6 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Stock Level Trend */}
-        <div className="bg-mrp-panel border border-mrp-border p-6 rounded-sm">
-          <div className="flex justify-between items-start mb-5">
-            <h3 className="text-base font-bold text-white">Stock Level Trend (Last 7 Days)</h3>
-            <div className="flex gap-4">
-              {[
-                { color: 'bg-[#0066CC]', label: 'CPU-I7' },
-                { color: 'bg-[#3E8635]', label: 'RAM-16G' },
-                { color: 'bg-[#F0AB00]', label: 'SSD-1T' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${item.color}`} />
-                  <span className="text-[10px] text-mrp-text-muted uppercase font-bold">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="h-[200px] w-full border border-mrp-border bg-mrp-app relative overflow-hidden chart-grid">
-            <svg
-              className="absolute inset-0 w-full h-full p-4"
-              viewBox="0 0 400 200"
-              preserveAspectRatio="none"
-            >
-              <polyline fill="none" stroke="#0066CC" strokeWidth="2"
-                points="0,150 50,140 100,160 150,110 200,130 250,90 300,100 400,60" />
-              <polyline fill="none" stroke="#3E8635" strokeWidth="2"
-                points="0,100 50,110 100,90 150,130 200,100 250,120 300,110 400,130" />
-              <polyline fill="none" stroke="#F0AB00" strokeWidth="2"
-                points="0,180 50,170 100,175 150,140 200,150 250,130 300,140 400,120" />
-            </svg>
-          </div>
-          {/* X-axis labels */}
-          <div className="flex justify-between mt-2 px-1">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-              <span key={d} className="text-[10px] text-mrp-text-muted">{d}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Order Fulfillment Rate */}
-        <div className="bg-mrp-panel border border-mrp-border p-6 rounded-sm">
-          <div className="flex justify-between items-start mb-5">
-            <h3 className="text-base font-bold text-white">Order Fulfillment Rate (%)</h3>
-            <select className="bg-mrp-app border border-mrp-border text-[11px] px-2 py-1 focus:outline-none text-white rounded-sm focus:border-mrp-primary">
-              <option>Daily</option>
-              <option>Weekly</option>
-            </select>
-          </div>
-          <div className="h-[200px] w-full border border-mrp-border bg-mrp-app relative overflow-hidden chart-grid">
-            <svg
-              className="absolute inset-0 w-full h-full p-4"
-              viewBox="0 0 400 200"
-              preserveAspectRatio="none"
-            >
-              <defs>
-                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0066CC" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#0066CC" stopOpacity="0.02" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M0,180 L50,160 L100,170 L150,120 L200,130 L250,80 L300,70 L400,50 L400,200 L0,200 Z"
-                fill="url(#areaFill)"
-              />
-              <polyline fill="none" stroke="#0066CC" strokeWidth="2"
-                points="0,180 50,160 100,170 150,120 200,130 250,80 300,70 400,50" />
-            </svg>
-          </div>
-          {/* Y-axis hint */}
-          <div className="flex justify-between mt-2 px-1">
-            {['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Now'].map((d) => (
-              <span key={d} className="text-[10px] text-mrp-text-muted">{d}</span>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Material Readiness Matrix */}
       <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-sm overflow-hidden flex flex-col">
