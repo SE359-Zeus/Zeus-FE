@@ -150,6 +150,12 @@
   background: #555;
 }
 
+/* Chart grid background */
+.chart-grid {
+  background-image: linear-gradient(to right, #3C3F42 1px, transparent 1px), linear-gradient(to bottom, #3C3F42 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
 /* Sonner toaster dark theme override */
 [data-sonner-toaster] [data-sonner-toast] {
   background: #212427 !important;
