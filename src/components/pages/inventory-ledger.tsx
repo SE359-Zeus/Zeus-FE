@@ -14,16 +14,13 @@ interface Transaction {
 }
 
 const mockTransactions: Transaction[] = [
-  { id: 'TXN-4001', sku: 'CPU-I7-13700H',     type: 'OUT', qtyChange: -5,  runningBalance: 0,  location: 'WH-A / Shelf-03', timestamp: '2026-04-24 09:15', operator: 'J. Chen',   reference: 'ORD-901' },
-  { id: 'TXN-4002', sku: 'RAM-16G-DDR5-5600',  type: 'OUT', qtyChange: -6,  runningBalance: 4,  location: 'WH-A / Shelf-07', timestamp: '2026-04-24 09:16', operator: 'J. Chen',   reference: 'ORD-901' },
-  { id: 'TXN-4003', sku: 'CPU-R9-7940HS',      type: 'IN',  qtyChange: 10,  runningBalance: 15, location: 'WH-B / Shelf-01', timestamp: '2026-04-24 08:30', operator: 'M. Park',   reference: 'PO-2024-088' },
-  { id: 'TXN-4004', sku: 'GPU-RX7600S',         type: 'IN',  qtyChange: 5,   runningBalance: 8,  location: 'WH-B / Shelf-02', timestamp: '2026-04-24 08:22', operator: 'M. Park',   reference: 'PO-2024-088' },
-  { id: 'TXN-4005', sku: 'SSD-1T-NVME-GEN4',   type: 'ADJ', qtyChange: 3,   runningBalance: 21, location: 'WH-A / Shelf-11', timestamp: '2026-04-23 17:45', operator: 'S. Lee',    reference: 'ADJ-2024-012' },
-  { id: 'TXN-4006', sku: 'RAM-32G-DDR5-5600',  type: 'OUT', qtyChange: -20, runningBalance: 30, location: 'WH-A / Shelf-06', timestamp: '2026-04-23 16:30', operator: 'J. Chen',   reference: 'ORD-899' },
-  { id: 'TXN-4007', sku: 'MB-XPS15-9530',       type: 'IN',  qtyChange: 8,   runningBalance: 12, location: 'WH-C / Shelf-01', timestamp: '2026-04-23 14:15', operator: 'A. Rivera', reference: 'PO-2024-085' },
-  { id: 'TXN-4008', sku: 'BAT-86WHR',           type: 'ADJ', qtyChange: -1,  runningBalance: 7,  location: 'WH-C / Shelf-05', timestamp: '2026-04-23 11:00', operator: 'S. Lee',    reference: 'ADJ-2024-011' },
-  { id: 'TXN-4009', sku: 'MB-X1C-GEN11',        type: 'IN',  qtyChange: 4,   runningBalance: 5,  location: 'WH-B / Shelf-03', timestamp: '2026-04-23 09:50', operator: 'M. Park',   reference: 'PO-2024-083' },
-  { id: 'TXN-4010', sku: 'RAM-32G-DDR5-5600',  type: 'OUT', qtyChange: -8,  runningBalance: 4,  location: 'WH-B / Shelf-08', timestamp: '2026-04-22 16:20', operator: 'J. Chen',   reference: 'ORD-897' },
+  { id: 'TXN-9001', sku: 'SOC-XM100-PRO',    type: 'OUT', qtyChange: -10, runningBalance: 15,  location: 'WH-A / Zone-C1', timestamp: '2026-05-06 14:15', operator: 'A. Jensen',  reference: 'ORD-101' },
+  { id: 'TXN-9002', sku: 'RAM-64G-DDR5',     type: 'OUT', qtyChange: -20, runningBalance: 40,  location: 'WH-A / Zone-M2', timestamp: '2026-05-06 14:16', operator: 'A. Jensen',  reference: 'ORD-101' },
+  { id: 'TXN-9003', sku: 'GPU-RTX5080-M',    type: 'IN',  qtyChange: 50,  runningBalance: 120, location: 'RECEIVING-02',  timestamp: '2026-05-06 09:30', operator: 'L. Zhang',   reference: 'PO-2024-112' },
+  { id: 'TXN-9004', sku: 'BATT-LIPO-99W',    type: 'ADJ', qtyChange: -2,  runningBalance: 88,  location: 'WH-C / Safe-01', timestamp: '2026-05-05 17:45', operator: 'K. Smith',   reference: 'CYCLE-COUNT' },
+  { id: 'TXN-9005', sku: 'SSD-2T-NVME',      type: 'IN',  qtyChange: 100, runningBalance: 250, location: 'RECEIVING-01',  timestamp: '2026-05-05 11:20', operator: 'L. Zhang',   reference: 'PO-2024-108' },
+  { id: 'TXN-9006', sku: 'MOD-WIFI7-AX',     type: 'OUT', qtyChange: -5,  runningBalance: 45,  location: 'WH-B / Shelf-04', timestamp: '2026-05-05 10:15', operator: 'A. Jensen',  reference: 'ORD-098' },
+  { id: 'TXN-9007', sku: 'PSU-GAN-240W',     type: 'IN',  qtyChange: 30,  runningBalance: 75,  location: 'RECEIVING-02',  timestamp: '2026-05-04 15:50', operator: 'L. Zhang',   reference: 'PO-2024-105' },
 ]
 
 const typeConfig: Record<TxnType, { bg: string; text: string; border: string; label: string; Icon: React.ElementType }> = {
@@ -33,10 +30,10 @@ const typeConfig: Record<TxnType, { bg: string; text: string; border: string; la
 }
 
 const kpiStats = [
-  { label: 'Total SKUs Tracked',  value: '47',  color: 'text-white' },
-  { label: 'Stock In Today',       value: '+15', color: 'text-mrp-success' },
-  { label: 'Stock Out Today',      value: '-31', color: 'text-mrp-danger' },
-  { label: 'Adjustments Today',   value: '+2',  color: 'text-mrp-warning' },
+  { label: 'Active SKUs',         value: '154',   color: 'text-white' },
+  { label: 'Stock Accuracy',      value: '99.2%', color: 'text-mrp-success' },
+  { label: 'Inventory Turnover',  value: '12.4x', color: 'text-mrp-primary' },
+  { label: 'Cycle Count Gaps',    value: '3',     color: 'text-mrp-warning' },
 ]
 
 const FILTER_TABS: { key: FilterType; label: string }[] = [
