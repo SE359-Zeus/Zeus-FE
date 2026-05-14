@@ -11,6 +11,7 @@ import {
   Menu,
   ChevronLeft,
   Truck,
+  ClipboardList,
 } from 'lucide-react'
 import type { PageId } from '@/app/page'
 
@@ -29,6 +30,7 @@ const navItems: { id: PageId; label: string; icon: React.ElementType }[] = [
   { id: 'user-access', label: 'User Access', icon: Users },
   { id: 'audit-logs', label: 'Audit Logs', icon: History },
   { id: 'vendor-routing', label: 'Vendor Routing', icon: Truck },
+  { id: 'po-orchestration', label: 'PO Orchestration', icon: ClipboardList },
 ]
 
 export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }: SidebarProps) {
