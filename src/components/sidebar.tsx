@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Truck,
   ClipboardList,
+  PackageCheck,
 } from 'lucide-react'
 import type { PageId } from '@/app/page'
 
@@ -31,6 +32,7 @@ const navItems: { id: PageId; label: string; icon: React.ElementType }[] = [
   { id: 'audit-logs', label: 'Audit Logs', icon: History },
   { id: 'vendor-routing', label: 'Vendor Routing', icon: Truck },
   { id: 'po-orchestration', label: 'PO Orchestration', icon: ClipboardList },
+  { id: 'goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
 ]
 
 export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }: SidebarProps) {
