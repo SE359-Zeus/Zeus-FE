@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Printer, ChevronDown, ChevronUp, ArrowRight, Filter } from 'lucide-react'
+import { ShoppingCart, Printer, ChevronDown, ChevronUp, ArrowRight, Filter, Download, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface OrderRow {
@@ -17,53 +17,38 @@ interface OrderRow {
 const mockOrders: OrderRow[] = [
   {
     id: '1',
-    orderId: 'ORD-901',
-    targetBuild: 'Workstation Alpha',
-    qty: 5,
+    orderId: 'ORD-101',
+    targetBuild: 'Zeus Workstation X1',
+    qty: 10,
     status: 'shortage',
-    missingComponents: '5x i7-13650HX, 10x DDR5-4800',
+    missingComponents: '10x SOC-XM100-PRO, 20x RAM-64G-DDR5',
     components: [
-      { sku: 'CPU-I7-13650HX', required: 5, onHand: 0, shortage: 5 },
-      { sku: 'RAM-16G-DDR5', required: 10, onHand: 4, shortage: 6 },
+      { sku: 'SOC-XM100-PRO', required: 10, onHand: 0, shortage: 10 },
+      { sku: 'RAM-64G-DDR5', required: 20, onHand: 5, shortage: 15 },
     ],
   },
   {
     id: '2',
-    orderId: 'ORD-902',
-    targetBuild: 'Gaming Rig Beta',
-    qty: 2,
+    orderId: 'ORD-102',
+    targetBuild: 'Titan Gaming Pro',
+    qty: 5,
     status: 'clear',
     missingComponents: '-',
     components: [
-      { sku: 'CPU-I9-13900K', required: 2, onHand: 5, shortage: 0 },
-      { sku: 'RAM-32G-DDR5', required: 2, onHand: 8, shortage: 0 },
-      { sku: 'GPU-RTX4080', required: 2, onHand: 3, shortage: 0 },
+      { sku: 'GPU-RTX5080-M', required: 5, onHand: 12, shortage: 0 },
+      { sku: 'PSU-GAN-240W', required: 5, onHand: 8, shortage: 0 },
     ],
   },
   {
     id: '3',
-    orderId: 'ORD-905',
-    targetBuild: 'Office Desktop Std',
-    qty: 15,
+    orderId: 'ORD-103',
+    targetBuild: 'Aero Ultrabook S',
+    qty: 25,
     status: 'clear',
     missingComponents: '-',
     components: [
-      { sku: 'CPU-I5-13400', required: 15, onHand: 20, shortage: 0 },
-      { sku: 'RAM-8G-DDR4', required: 15, onHand: 30, shortage: 0 },
-      { sku: 'SSD-512G-NVME', required: 15, onHand: 18, shortage: 0 },
-    ],
-  },
-  {
-    id: '4',
-    orderId: 'ORD-907',
-    targetBuild: 'Server Rack Gamma',
-    qty: 3,
-    status: 'shortage',
-    missingComponents: '3x Xeon W-2400, 12x ECC-DDR5',
-    components: [
-      { sku: 'CPU-XEON-W2400', required: 3, onHand: 1, shortage: 2 },
-      { sku: 'RAM-32G-ECC-DDR5', required: 12, onHand: 4, shortage: 8 },
-      { sku: 'PSU-1200W', required: 3, onHand: 3, shortage: 0 },
+      { sku: 'SOC-XM100-LT', required: 25, onHand: 30, shortage: 0 },
+      { sku: 'BATT-LIPO-99W', required: 25, onHand: 40, shortage: 0 },
     ],
   },
 ]
@@ -80,7 +65,7 @@ const statusConfig = {
     bg: 'bg-mrp-success/10',
     border: 'border-mrp-success/20',
     text: 'text-mrp-success',
-    label: 'Clear to Build',
+    label: 'Ready to Build',
     pulse: false,
   },
   partial: {
@@ -91,6 +76,42 @@ const statusConfig = {
     pulse: true,
   },
 }
+
+const kpiCards = [
+  {
+    label: 'Total Open Orders',
+    value: '1,248',
+    valueClass: 'text-white',
+    accent: null,
+    badge: (
+      <span className="text-[10px] text-mrp-success flex items-center gap-0.5">
+        <TrendingUp size={12} />
+        +12.5%
+      </span>
+    ),
+  },
+  {
+    label: 'Components In Shortage',
+    value: '24',
+    valueClass: 'text-mrp-danger',
+    accent: 'border-l-4 border-l-mrp-danger',
+    badge: <span className="animate-pulse flex h-2 w-2 rounded-full bg-mrp-danger" />,
+  },
+  {
+    label: 'Shortage Blocked Orders',
+    value: '396',
+    valueClass: 'text-mrp-danger',
+    accent: 'border-l-4 border-l-mrp-danger',
+    badge: <span className="text-[10px] text-mrp-text-muted">32% of Total</span>,
+  },
+  {
+    label: 'Supply Readiness',
+    value: '88.4%',
+    valueClass: 'text-mrp-success',
+    accent: 'border-l-4 border-l-mrp-success',
+    badge: <span className="text-[10px] text-mrp-text-muted">Target: 95%</span>,
+  },
+]
 
 export function DashboardPage() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['1']))
@@ -116,29 +137,76 @@ export function DashboardPage() {
 
   return (
     <>
-      {/* Page Header (Đã gỡ bỏ nút Draft Purchase Orders) */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white m-0">Material Readiness Matrix</h1>
-        <p className="text-sm text-mrp-text-secondary mt-1">
-          Real-time build viability and component allocation.
-        </p>
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white m-0">Orchestrator Dashboard</h1>
+          <p className="text-sm text-mrp-text-muted mt-1">
+            Real-time material readiness and production blockage monitoring.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => toast.success('Report Exported', { description: 'Dashboard report downloaded' })}
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm"
+          >
+            <Download size={16} />
+            Export Report
+          </button>
+          <button
+            onClick={() => toast.success('Purchase Orders Drafted', { description: '8 POs created for deficit components' })}
+            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
+          >
+            <ShoppingCart size={16} />
+            Generate Shortage POs
+          </button>
+        </div>
       </div>
 
-      {/* Data Grid Container */}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {kpiCards.map((card) => (
+          <div
+            key={card.label}
+            className={`bg-mrp-panel border border-mrp-border p-4 flex flex-col justify-between rounded-sm ${card.accent ?? ''}`}
+          >
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
+              {card.label}
+            </span>
+            <div className="flex items-baseline justify-between mt-3">
+              <span className={`font-mono font-bold text-2xl ${card.valueClass}`}>{card.value}</span>
+              {card.badge}
+            </div>
+          </div>
+        ))}
+      </div>
+
+
+      {/* Material Readiness Matrix */}
       <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-sm overflow-hidden flex flex-col">
         {/* Table Controls */}
-        <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => toast.success('Filters applied', { description: 'Showing filtered results' })}
-            className="flex items-center gap-2 px-3 py-1.5 border border-mrp-border rounded-sm bg-mrp-panel text-white text-[13px] hover:bg-mrp-border transition-colors"
-          >
-            <Filter size={14} />
-            Filter
-          </button>
-          <div className="h-4 w-px bg-mrp-border"></div>
-          <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
-            Showing: All Open Orders
-          </span>
+        <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => toast.success('Filters applied', { description: 'Showing filtered results' })}
+              className="flex items-center gap-2 px-3 py-1.5 border border-mrp-border rounded-sm bg-mrp-panel text-white text-[13px] hover:bg-mrp-border transition-colors"
+            >
+              <Filter size={14} />
+              Filter
+            </button>
+            <div className="h-4 w-px bg-mrp-border" />
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
+              Material Readiness Matrix
+            </span>
+          </div>
+          <div className="flex gap-4 text-[11px] text-mrp-text-muted">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-mrp-danger" /> Critical Shortage
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-mrp-warning" /> Potential Delay
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -212,7 +280,7 @@ export function DashboardPage() {
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${cfg.text.replace('text-', 'bg-')}${cfg.pulse ? ' animate-pulse' : ''}`}
-                          ></span>
+                          />
                           {cfg.label}
                         </div>
                       </td>
@@ -239,43 +307,27 @@ export function DashboardPage() {
                       </td>
                     </tr>
 
-                    {/* Expanded View */}
+                    {/* Expanded Component Breakdown */}
                     {isExpanded && order.components && (
                       <tr key={`${order.id}-expanded`} className="bg-[#1a1c1e] shadow-inner border-b border-mrp-border">
-                        <td></td>
+                        <td />
                         <td className="py-4 px-4 pb-6" colSpan={6}>
                           <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4">
                             <h4 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-3 border-b border-mrp-border pb-2">
                               Component Deficit Breakdown
                             </h4>
                             <div className="grid grid-cols-4 gap-4 text-[13px]">
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider col-span-1">
-                                Component SKU
-                              </div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">
-                                Required
-                              </div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">
-                                On-Hand
-                              </div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">
-                                Shortage
-                              </div>
+                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider col-span-1">Component SKU</div>
+                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Required</div>
+                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">On-Hand</div>
+                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Shortage</div>
 
                               {order.components.map((comp, idx) => (
                                 <React.Fragment key={idx}>
-                                  <div className="col-span-1 font-mono text-white border-t border-mrp-border pt-2">
-                                    {comp.sku}
-                                  </div>
-                                  <div className="text-right font-mono text-white border-t border-mrp-border pt-2">
-                                    {comp.required}
-                                  </div>
-                                  <div className="text-right font-mono text-mrp-text-muted border-t border-mrp-border pt-2">
-                                    {comp.onHand}
-                                  </div>
-                                  <div
-                                    className={`text-right font-mono font-bold border-t border-mrp-border pt-2 ${comp.shortage > 0 ? 'text-mrp-danger' : 'text-mrp-success'}`}
-                                  >
+                                  <div className="col-span-1 font-mono text-white border-t border-mrp-border pt-2">{comp.sku}</div>
+                                  <div className="text-right font-mono text-white border-t border-mrp-border pt-2">{comp.required}</div>
+                                  <div className="text-right font-mono text-mrp-text-muted border-t border-mrp-border pt-2">{comp.onHand}</div>
+                                  <div className={`text-right font-mono font-bold border-t border-mrp-border pt-2 ${comp.shortage > 0 ? 'text-mrp-danger' : 'text-mrp-success'}`}>
                                     {comp.shortage}
                                   </div>
                                 </React.Fragment>
