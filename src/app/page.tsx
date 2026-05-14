@@ -12,8 +12,9 @@ import { AuditLogsPage } from '@/components/pages/audit-logs'
 import { VendorRoutingPage } from '@/components/pages/vendor-routing'
 import { PoOrchestrationPage } from '@/components/pages/po-orchestration'
 import { GoodsReceiptPage } from '@/components/pages/goods-receipt'
+import { DownstreamLogisticsPage } from '@/components/pages/downstream-logistics'
 
-export type PageId = 'dashboard' | 'bom-catalog' | 'inventory-ledger' | 'demand-pos' | 'user-access' | 'audit-logs' | 'vendor-routing' | 'po-orchestration' | 'goods-receipt'
+export type PageId = 'dashboard' | 'bom-catalog' | 'inventory-ledger' | 'demand-pos' | 'user-access' | 'audit-logs' | 'vendor-routing' | 'po-orchestration' | 'goods-receipt' | 'downstream-logistics'
 
 export default function Home() {
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard')
@@ -39,6 +40,8 @@ export default function Home() {
         return <PoOrchestrationPage />
       case 'goods-receipt':
         return <GoodsReceiptPage />
+      case 'downstream-logistics':
+        return <DownstreamLogisticsPage />
       default:
         return <DashboardPage />
     }
