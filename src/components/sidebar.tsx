@@ -31,7 +31,7 @@ const navItems: { id: PageId; label: string; icon: React.ElementType }[] = [
   { id: 'demand-pos', label: 'Demand & POs', icon: ShoppingCart },
   { id: 'user-access', label: 'User Access', icon: Users },
   { id: 'audit-logs', label: 'Audit Logs', icon: History },
-  { id: 'vendor-routing', label: 'Vendor Routing', icon: Truck },
+  { id: 'vendor', label: 'Vendor', icon: Truck },
   { id: 'po-orchestration', label: 'PO Orchestration', icon: ClipboardList },
   { id: 'goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
   { id: 'downstream-logistics', label: 'Downstream Logistics', icon: Send },

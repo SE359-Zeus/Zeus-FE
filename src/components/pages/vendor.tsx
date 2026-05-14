@@ -135,7 +135,7 @@ const riskData = [
   { name: 'FOXC', value: 78, hex: '#C9190B' },
 ]
 
-export function VendorRoutingPage() {
+export function VendorPage() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['VND-003']))
   const [searchQuery, setSearchQuery] = useState('')
@@ -163,7 +163,7 @@ export function VendorRoutingPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white m-0">Vendor Routing</h1>
+          <h1 className="text-2xl font-bold text-white m-0">Vendor</h1>
           <p className="text-sm text-mrp-text-muted mt-1">
             Manage vendor relationships, map SKU associations, and optimize procurement routing.
           </p>
