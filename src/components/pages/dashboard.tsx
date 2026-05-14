@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ShoppingCart, Printer, ChevronDown, ChevronUp, ArrowRight, Filter } from 'lucide-react'
+import { Printer, ChevronDown, ChevronUp, ArrowRight, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface OrderRow {
@@ -116,21 +116,12 @@ export function DashboardPage() {
 
   return (
     <>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white m-0">Material Readiness Matrix</h1>
-          <p className="text-sm text-mrp-text-secondary mt-1">
-            Real-time build viability and component allocation.
-          </p>
-        </div>
-        <button
-          onClick={() => toast.success('Purchase Orders Drafted', { description: '3 POs created for deficit components' })}
-          className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
-        >
-          <ShoppingCart size={16} />
-          Draft Purchase Orders
-        </button>
+      {/* Page Header (Đã gỡ bỏ nút Draft Purchase Orders) */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white m-0">Material Readiness Matrix</h1>
+        <p className="text-sm text-mrp-text-secondary mt-1">
+          Real-time build viability and component allocation.
+        </p>
       </div>
 
       {/* Data Grid Container */}

@@ -1,13 +1,12 @@
 'use client'
 
 import React from 'react';
-import { Search, Bell, User, Settings, Palette, LogOut } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -62,8 +61,7 @@ export function NotificationBell() {
               className="px-4 py-3 rounded-none cursor-pointer focus:bg-mrp-app focus:text-white transition-colors"
             >
               <div className="flex flex-col gap-1 w-full">
-                <p className={`text-[13px] font-medium ${notification.isCritical ? 'text-mrp-danger' : 'text-white'
-                  }`}>
+                <p className={`text-[13px] font-medium ${notification.isCritical ? 'text-mrp-danger' : 'text-white'}`}>
                   {notification.title}
                 </p>
                 <p className="text-[13px] text-mrp-text-secondary leading-snug">
@@ -75,53 +73,6 @@ export function NotificationBell() {
               </div>
             </DropdownMenuItem>
           ))}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-export function UserProfileMenu() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center justify-center w-8 h-8 rounded-full border border-mrp-border bg-mrp-panel text-mrp-text-muted hover:text-white transition-colors focus:outline-none">
-          <User size={16} />
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align="end"
-        className="w-56 bg-mrp-panel border border-mrp-border rounded-sm shadow-sm p-0 overflow-hidden"
-      >
-        <div className="px-3 py-3 border-b border-mrp-border">
-          <p className="text-[13px] text-white font-medium truncate">
-            Elias Thorne
-          </p>
-          <p className="text-[13px] text-mrp-text-secondary truncate mt-0.5">
-            elias.thorne@mrp-corp.com
-          </p>
-        </div>
-
-        <div className="py-1">
-          <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-[13px] text-white font-medium cursor-pointer rounded-none focus:bg-mrp-border focus:text-white data-[highlighted]:bg-mrp-border data-[highlighted]:text-white outline-none">
-            <Settings size={14} className="text-mrp-text-muted" />
-            Account Settings
-          </DropdownMenuItem>
-
-          <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-[13px] text-white font-medium cursor-pointer rounded-none focus:bg-mrp-border focus:text-white data-[highlighted]:bg-mrp-border data-[highlighted]:text-white outline-none">
-            <Palette size={14} className="text-mrp-text-muted" />
-            Preferences
-          </DropdownMenuItem>
-        </div>
-
-        <DropdownMenuSeparator className="bg-mrp-border h-px mx-0" />
-
-        <div className="py-1">
-          <DropdownMenuItem className="flex items-center gap-2 px-3 py-2 text-[13px] text-mrp-danger font-medium cursor-pointer rounded-none focus:bg-mrp-danger/10 focus:text-mrp-danger data-[highlighted]:bg-mrp-danger/10 data-[highlighted]:text-mrp-danger outline-none">
-            <LogOut size={14} />
-            Log out
-          </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -146,16 +97,8 @@ export function Topbar() {
           />
         </div>
       </div>
-
       <div className="flex items-center gap-4 shrink-0">
         <NotificationBell />
-        <UserProfileMenu />
-        <button
-          onClick={() => toast.success('Settings saved', { description: 'Preferences updated' })}
-          className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer p-2 rounded-full"
-        >
-          <Settings size={20} />
-        </button>
       </div>
     </header>
   )
