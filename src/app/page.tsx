@@ -9,8 +9,9 @@ import { InventoryLedgerPage } from '@/components/pages/inventory-ledger'
 import { DemandPosPage } from '@/components/pages/demand-pos'
 import { UserAccessPage } from '@/components/pages/user-access'
 import { AuditLogsPage } from '@/components/pages/audit-logs'
+import { VendorRoutingPage } from '@/components/pages/vendor-routing'
 
-export type PageId = 'dashboard' | 'bom-catalog' | 'inventory-ledger' | 'demand-pos' | 'user-access' | 'audit-logs'
+export type PageId = 'dashboard' | 'bom-catalog' | 'inventory-ledger' | 'demand-pos' | 'user-access' | 'audit-logs' | 'vendor-routing'
 
 export default function Home() {
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard')
@@ -30,6 +31,8 @@ export default function Home() {
         return <UserAccessPage />
       case 'audit-logs':
         return <AuditLogsPage />
+      case 'vendor-routing':
+        return <VendorRoutingPage />
       default:
         return <DashboardPage />
     }
