@@ -98,7 +98,8 @@ const ALL_SKUS = Object.keys(mockCatalog)
 
 export function BomCatalogView() {
   const [selectedAssemblyId, setSelectedAssemblyId] = useState('1')
-  const [selectedSku, setSelectedSku] = useState('SOC-XM100-PRO')
+  const [selectedSku, setSelectedSku] = useState<string | null>(null)
+  
   const [showModal, setShowModal] = useState(false)
   const [modalName, setModalName] = useState('')
   const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', qty: 1 }])
@@ -108,7 +109,8 @@ export function BomCatalogView() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
-  const selectedComponent = mockCatalog[selectedSku]
+  const selectedComponent = selectedSku ? mockCatalog[selectedSku] : null
+  const selectedAssembly = mockAssemblies.find(a => a.id === selectedAssemblyId)
 
   const addRow = () => { setModalRows((p) => [...p, { id: nextId, sku: '', qty: 1 }]); setNextId((n) => n + 1) }
   const removeRow = (id: number) => setModalRows((p) => p.filter((r) => r.id !== id))
@@ -123,10 +125,9 @@ export function BomCatalogView() {
 
   return (
     <>
-      {/* Page Header */}
       <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-white m-0">BOM &amp; Catalog</h1>
+          <h1 className="text-2xl font-bold text-white m-0">Product Catalog</h1>
           <p className="text-sm text-mrp-text-muted mt-1">Define hardware assemblies and manage the part catalog.</p>
         </div>
         <button
@@ -143,7 +144,7 @@ export function BomCatalogView() {
         {/* Left Panel: BOM Tree */}
         <div className="w-[300px] shrink-0 bg-mrp-panel border border-mrp-border rounded-sm flex flex-col overflow-hidden">
           <div className="p-3 border-b border-mrp-border flex items-center justify-between">
-            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Product Assemblies (BOM)</span>
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Product Assemblies</span>
             <Filter size={13} className="text-mrp-text-muted hover:text-white cursor-pointer transition-colors" />
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -153,15 +154,15 @@ export function BomCatalogView() {
                 <div key={assembly.id}>
                   <div
                     className={`group flex items-center justify-between p-2 cursor-pointer transition-colors rounded-sm border-l-2 ${
-                      isSelected ? 'bg-mrp-app border-mrp-primary' : 'border-transparent hover:bg-mrp-app hover:border-mrp-border'
+                      isSelected && selectedSku === null ? 'bg-mrp-app border-mrp-primary' : 'border-transparent hover:bg-mrp-app hover:border-mrp-border'
                     }`}
-                    onClick={() => { setSelectedAssemblyId(assembly.id); setSelectedSku(assembly.components[0].sku) }}
+                    onClick={() => { setSelectedAssemblyId(assembly.id); setSelectedSku(null) }}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {isSelected
                         ? <FolderOpen size={15} className="text-mrp-primary shrink-0" />
                         : <Folder size={15} className="text-mrp-text-muted shrink-0" />}
-                      <span className={`text-[13px] font-semibold truncate ${isSelected ? 'text-mrp-primary' : 'text-mrp-text-secondary'}`}>
+                      <span className={`text-[13px] font-semibold truncate ${isSelected && selectedSku === null ? 'text-mrp-primary' : 'text-mrp-text-secondary'}`}>
                         {assembly.name}
                       </span>
                     </div>
@@ -180,7 +181,7 @@ export function BomCatalogView() {
                         return (
                           <div
                             key={comp.sku}
-                            onClick={() => setSelectedSku(comp.sku)}
+                            onClick={(e) => { e.stopPropagation(); setSelectedSku(comp.sku) }}
                             className={`flex items-center justify-between px-2 py-1.5 cursor-pointer rounded-sm transition-colors ${
                               selectedSku === comp.sku ? 'bg-mrp-border/40 text-white' : 'text-mrp-text-muted hover:text-white hover:bg-mrp-app'
                             }`}
@@ -201,19 +202,21 @@ export function BomCatalogView() {
           </div>
         </div>
 
-        {/* Right Panel: Component Detail */}
+        {/* Right Panel: Display Context */}
         <div className="flex-1 bg-mrp-panel border border-mrp-border rounded-sm flex flex-col overflow-hidden">
           <div className="p-3 border-b border-mrp-border flex items-center justify-between shrink-0">
-            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Component Specification</span>
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
+              {selectedSku ? 'Component Specification' : 'Product Assembly Details'}
+            </span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => toast.success('Component Updated', { description: `${selectedSku} spec saved` })}
+                onClick={() => toast.success(selectedSku ? 'Component Updated' : 'Assembly Updated', { description: 'Changes saved' })}
                 className="flex items-center gap-1 px-3 py-1 text-mrp-primary border border-mrp-primary/40 hover:bg-mrp-primary hover:text-white transition-all text-[11px] font-bold uppercase tracking-wider rounded-sm"
               >
-                <Pencil size={12} /> Edit Component
+                <Pencil size={12} /> {selectedSku ? 'Edit Component' : 'Edit Assembly'}
               </button>
               <button
-                onClick={() => toast.error('Deleted', { description: `${selectedSku} removed` })}
+                onClick={() => toast.error('Deleted', { description: 'Item removed' })}
                 className="flex items-center gap-1 px-3 py-1 text-mrp-danger border border-mrp-danger/40 hover:bg-mrp-danger hover:text-white transition-all text-[11px] font-bold uppercase tracking-wider rounded-sm"
               >
                 <Trash2 size={12} /> Delete
@@ -221,9 +224,8 @@ export function BomCatalogView() {
             </div>
           </div>
 
-          {selectedComponent && (
+          {selectedSku && selectedComponent ? (
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* Identity */}
               <div className="flex items-start justify-between gap-8">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3 mb-2">
@@ -241,7 +243,6 @@ export function BomCatalogView() {
                 </div>
               </div>
 
-              {/* Where Used */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <GitBranch size={14} className="text-mrp-text-muted" />
@@ -267,7 +268,62 @@ export function BomCatalogView() {
                 </div>
               </div>
             </div>
-          )}
+          ) : selectedAssembly ? (
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex items-start justify-between gap-8">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-mono text-mrp-primary font-bold text-[13px]">ASM-{selectedAssembly.id.padStart(4, '0')}</span>
+                    <span className="px-2 py-0.5 border border-mrp-primary/30 bg-mrp-primary/10 text-mrp-primary text-[9px] uppercase font-bold tracking-widest rounded-sm">
+                      Product Assembly
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">{selectedAssembly.name}</h2>
+                  <p className="text-mrp-text-muted text-sm leading-relaxed">
+                    Complete configuration and bill of materials for {selectedAssembly.name}.
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1">Total Parts</div>
+                  <div className="text-3xl font-bold font-mono text-white">
+                    {selectedAssembly.components.reduce((sum, c) => sum + c.qty, 0)}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <CircuitBoard size={14} className="text-mrp-text-muted" />
+                  <h3 className="text-[11px] font-bold text-white uppercase tracking-wider">Bill of Materials</h3>
+                </div>
+                <div className="border border-mrp-border rounded-sm overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-mrp-app border-b border-mrp-border">
+                        <th className="px-4 py-2.5 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Component SKU</th>
+                        <th className="px-4 py-2.5 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-mrp-border">
+                      {selectedAssembly.components.map((comp, i) => (
+                        <tr 
+                          key={i} 
+                          className="hover:bg-mrp-app/50 transition-colors cursor-pointer group"
+                          onClick={() => setSelectedSku(comp.sku)}
+                        >
+                          <td className="px-4 py-2.5 text-[13px] text-mrp-text-secondary font-mono flex items-center gap-2 group-hover:text-mrp-primary transition-colors">
+                            <comp.icon size={14} className="text-mrp-text-muted group-hover:text-mrp-primary transition-colors" />
+                            {comp.sku}
+                          </td>
+                          <td className="px-4 py-2.5 text-[13px] text-white text-right font-mono">{comp.qty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -373,7 +429,7 @@ export function BomCatalogView() {
         </div>
       )}
 
-      {/* Fixed-position SKU dropdown — rendered outside all overflow containers */}
+      {/* Fixed-position SKU dropdown */}
       {showModal && activeRowId !== null && dropdownPos && (() => {
         const filteredSkus = ALL_SKUS.filter(s => s.toLowerCase().includes(skuQuery.toLowerCase()))
         return (
