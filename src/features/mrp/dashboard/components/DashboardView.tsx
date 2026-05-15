@@ -113,7 +113,7 @@ const kpiCards = [
   },
 ]
 
-export function DashboardPage() {
+export function DashboardView() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['1']))
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set(['1']))
 

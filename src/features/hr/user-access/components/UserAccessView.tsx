@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react';
 import { UserPlus, Pencil, Trash2 } from 'lucide-react';
 
@@ -82,7 +84,7 @@ const StatusBadge = ({ status }: { status: 'Active' | 'Inactive' }) => {
 };
 
 // --- Main Component ---
-export function UserAccessPage() {
+export function UserAccessView() {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Page Header */}

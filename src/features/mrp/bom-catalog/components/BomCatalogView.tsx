@@ -96,7 +96,7 @@ const mockCatalog: Record<string, CatalogComponent> = {
 
 const ALL_SKUS = Object.keys(mockCatalog)
 
-export function BomCatalogPage() {
+export function BomCatalogView() {
   const [selectedAssemblyId, setSelectedAssemblyId] = useState('1')
   const [selectedSku, setSelectedSku] = useState('SOC-XM100-PRO')
   const [showModal, setShowModal] = useState(false)

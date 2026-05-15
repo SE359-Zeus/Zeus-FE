@@ -47,7 +47,7 @@ const mockAuditEntries: AuditEntry[] = [
   { id: 'LOG-1015', timestamp: '2026-04-22 14:10:22', user: 'Alex Rivera', action: 'update', resource: 'User Access', details: 'Changed role for Carlos Mendez from planner to viewer', ipAddress: '10.0.4.23' },
 ]
 
-export function AuditLogsPage() {
+export function AuditLogsView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterAction, setFilterAction] = useState<AuditAction | 'ALL'>('ALL')
   const [isAutoRefresh, setIsAutoRefresh] = useState(true)

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -14,39 +16,52 @@ import {
   ChevronDown,
   LogOut
 } from 'lucide-react'
-import type { PageId } from '@/app/page'
 
 interface SidebarProps {
-  currentPage: PageId
-  onNavigate: (page: PageId) => void
   collapsed: boolean
   onToggleCollapse: () => void
 }
 
-// Cấu trúc danh sách Menu (Đã dời Dashboard vào MRP)
 const navSections = [
   {
     title: 'MRP',
     items: [
-      { id: 'dashboard' as PageId, label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'bom-catalog' as PageId, label: 'BOM & Catalog', icon: Package },
-      { id: 'inventory-ledger' as PageId, label: 'Inventory Ledger', icon: FileText },
-      { id: 'demand-pos' as PageId, label: 'Demand & POs', icon: ShoppingCart },
+      { href: '/mrp/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { href: '/mrp/bom-catalog', label: 'BOM & Catalog', icon: Package },
+      { href: '/mrp/inventory-ledger', label: 'Inventory Ledger', icon: FileText },
+      { href: '/mrp/demand-pos', label: 'Demand & POs', icon: ShoppingCart },
     ]
   },
   {
-    title: 'System',
+    title: 'SCM',
     items: [
-      { id: 'user-access' as PageId, label: 'User Access', icon: Users },
-      { id: 'audit-logs' as PageId, label: 'Audit Logs', icon: History },
+      { href: '/scm/suppliers', label: 'Suppliers', icon: Factory },
+      { href: '/scm/shipments', label: 'Shipments', icon: Package },
+    ]
+  },
+  {
+    title: 'Sales',
+    items: [
+      { href: '/sales/orders', label: 'Sales Orders', icon: ShoppingCart },
+      { href: '/sales/customers', label: 'Customers', icon: Users },
+    ]
+  },
+  {
+    title: 'HR',
+    items: [
+      { href: '/hr/user-access', label: 'User Access', icon: Users },
+      { href: '/hr/audit-logs', label: 'Audit Logs', icon: History },
     ]
   }
 ]
 
-export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
+  const pathname = usePathname()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     'MRP': true,
-    'System': true,
+    'SCM': true,
+    'Sales': true,
+    'HR': true,
   })
 
   const toggleSection = (title: string) => {
@@ -56,13 +71,13 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }
     }))
   }
 
-  const renderNavItem = (item: { id: PageId; label: string; icon: React.ElementType }) => {
-    const isActive = currentPage === item.id
+  const renderNavItem = (item: { href: string; label: string; icon: React.ElementType }) => {
+    const isActive = pathname === item.href
     const Icon = item.icon
     return (
-      <li key={item.id}>
-        <button
-          onClick={() => onNavigate(item.id)}
+      <li key={item.href}>
+        <Link
+          href={item.href}
           className={`w-full text-left py-2.5 px-4 flex items-center gap-3 text-[13px] transition-all duration-200 whitespace-nowrap ${
             isActive
               ? 'border-l-4 border-mrp-primary bg-mrp-app text-white font-bold'
@@ -80,7 +95,7 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }
           >
             {item.label}
           </span>
-        </button>
+        </Link>
       </li>
     )
   }
@@ -149,8 +164,8 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }
 
       {/* Bottom Area: Logout / User Profile */}
       <div className="border-t border-mrp-border p-3 shrink-0">
-        <button
-          onClick={() => window.location.href = '/login'}
+        <Link
+          href="/login"
           className="w-full flex items-center gap-3 text-mrp-text-muted hover:text-white hover:bg-mrp-app p-2 rounded-sm transition-all duration-200 group overflow-hidden"
           title={collapsed ? "Logout" : ""}
         >
@@ -165,7 +180,7 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }
             <span className="text-[13px] font-medium">Logout</span>
             <LogOut size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-mrp-danger" />
           </div>
-        </button>
+        </Link>
       </div>
     </nav>
   )

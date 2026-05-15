@@ -61,7 +61,7 @@ function exportCSV(rows: Transaction[]) {
   URL.revokeObjectURL(url)
 }
 
-export function InventoryLedgerPage() {
+export function InventoryLedgerView() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 

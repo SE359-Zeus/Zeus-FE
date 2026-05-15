@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react';
 import { Search, SlidersHorizontal, Printer, Eye, EyeOff } from 'lucide-react';
 
@@ -70,7 +72,7 @@ const ReadinessBadge = ({ status }: { status: string }) => {
 };
 
 // --- Main Component ---
-export function DemandPosPage() {
+export function DemandPosView() {
   // State to simulate toggling component visibility per row
   const [visibleComponents, setVisibleComponents] = useState<Record<string, boolean>>({});
 
