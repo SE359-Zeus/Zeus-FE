@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ShoppingCart, Printer, ChevronDown, ChevronUp, ArrowRight, Filter, Download, TrendingUp } from 'lucide-react'
+import { Printer, ChevronDown, ChevronUp, ArrowRight, Filter, Download, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface OrderRow {
@@ -152,13 +152,6 @@ export function DashboardView() {
           >
             <Download size={16} />
             Export Report
-          </button>
-          <button
-            onClick={() => toast.success('Purchase Orders Drafted', { description: '8 POs created for deficit components' })}
-            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
-          >
-            <ShoppingCart size={16} />
-            Generate Shortage POs
           </button>
         </div>
       </div>

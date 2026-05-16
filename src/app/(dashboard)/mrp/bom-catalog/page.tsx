@@ -1,4 +1,4 @@
-import { BomCatalogView } from '@/features/mrp/bom-catalog/components/BomCatalogView'
+import { BomCatalogView } from '@/features/mrp/product-catalog/components/ProductCatalogView'
 
 export default function BomCatalogPage() {
   return <BomCatalogView />

@@ -14,7 +14,8 @@ import {
   Menu,
   ChevronLeft,
   ChevronDown,
-  LogOut
+  LogOut,
+  AlertTriangle // Thêm icon cho Shortage
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -27,7 +28,7 @@ const navSections = [
     title: 'MRP',
     items: [
       { href: '/mrp/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/mrp/bom-catalog', label: 'BOM & Catalog', icon: Package },
+      { href: '/mrp/bom-catalog', label: 'Product Catalog', icon: Package },
       { href: '/mrp/inventory-ledger', label: 'Inventory Ledger', icon: FileText },
       { href: '/mrp/demand-pos', label: 'Demand & POs', icon: ShoppingCart },
     ]
@@ -37,6 +38,7 @@ const navSections = [
     items: [
       { href: '/scm/suppliers', label: 'Suppliers', icon: Factory },
       { href: '/scm/shipments', label: 'Shipments', icon: Package },
+      { href: '/scm/shortages', label: 'Shortages', icon: AlertTriangle },
     ]
   },
   {
@@ -84,11 +86,17 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               : 'text-mrp-text-muted font-medium hover:bg-mrp-app hover:text-mrp-text-secondary border-l-4 border-transparent'
           }`}
         >
-          <Icon
-            size={18}
-            className={`shrink-0 ${isActive ? 'text-mrp-primary' : ''}`}
-            {...(isActive ? { fill: 'currentColor', strokeWidth: 1.5 } : { strokeWidth: 2 })}
-          />
+          <div className="relative flex shrink-0 items-center justify-center">
+            <Icon
+              size={18}
+              className={`${isActive ? 'text-mrp-primary' : ''}`}
+              {...(isActive ? { fill: 'currentColor', strokeWidth: 1.5 } : { strokeWidth: 2 })}
+            />
+            {item.label === 'Shortages' && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-mrp-danger animate-pulse" />
+            )}
+          </div>
+          
           <span
             className="transition-all duration-300 overflow-hidden"
             style={{ opacity: collapsed ? 0 : 1, width: collapsed ? 0 : 'auto' }}
@@ -129,7 +137,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
       {/* Navigation Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pt-2">
-        {/* Dynamic Sections */}
         {navSections.map((section) => {
           const isSectionExpanded = expandedSections[section.title] !== false
 
@@ -162,7 +169,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         })}
       </div>
 
-      {/* Bottom Area: Logout / User Profile */}
       <div className="border-t border-mrp-border p-3 shrink-0">
         <Link
           href="/login"
