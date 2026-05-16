@@ -1,5 +1,5 @@
-import { PoOrchestrationPage } from '@/components/pages/po-orchestration'
+﻿import { PurchaseOrderView } from '@/features/scm/purchase-order/components/PurchaseOrderView'
 
 export default function Page() {
-  return <PoOrchestrationPage />
+  return <PurchaseOrderView />
 }

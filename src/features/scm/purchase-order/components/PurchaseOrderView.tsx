@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react'
 import {
@@ -137,7 +137,7 @@ const kpiCards = [
   { label: 'Outstanding Value', value: '$1,420,500', color: 'text-white', accent: null },
 ]
 
-export function PoOrchestrationPage() {
+export function PurchaseOrderView() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['PO-2024-105']))
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set(['PO-2024-108', 'PO-2024-107', 'PO-2024-106']))
@@ -161,9 +161,9 @@ export function PoOrchestrationPage() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white m-0">PO Orchestration</h1>
+          <h1 className="text-2xl font-bold text-white m-0">Purchase Order</h1>
           <p className="text-sm text-mrp-text-muted mt-1">
-            Manage the complete purchase order lifecycle from draft creation to goods receipt.
+            Manage purchase orders for component procurement. One Purchase Order per supplier.
           </p>
         </div>
         <div className="flex gap-3">
@@ -351,7 +351,7 @@ export function PoOrchestrationPage() {
                                       {(po.status === 'Partial' || po.status === 'Received') && (
                                         <td className={`py-2.5 px-4 font-mono text-[12px] text-right font-bold ${
                                           li.receivedQty !== undefined && li.receivedQty < li.orderedQty ? 'text-mrp-warning' : 'text-mrp-success'
-                                        }`}>{li.receivedQty ?? '—'}</td>
+                                        }`}>{li.receivedQty ?? 'â€”'}</td>
                                       )}
                                     </tr>
                                   ))}
@@ -403,7 +403,7 @@ export function PoOrchestrationPage() {
         <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
           <span className="text-[13px] text-mrp-text-muted">
             Showing 1-{filtered.length} of {filtered.length} Purchase Orders
-            {selectedRows.size > 0 && <span className="ml-2 text-mrp-primary font-medium">· {selectedRows.size} selected</span>}
+            {selectedRows.size > 0 && <span className="ml-2 text-mrp-primary font-medium">Â· {selectedRows.size} selected</span>}
           </span>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -426,3 +426,4 @@ export function PoOrchestrationPage() {
     </>
   )
 }
+

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react'
 import {
@@ -107,7 +107,7 @@ function getActionInfo(gr: GoodsReceipt): { label: string; primary: boolean; dis
   return { label: 'View Details', primary: false, disabled: false }
 }
 
-export function GoodsReceiptPage() {
+export function GoodsReceiptView() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [expandedId, setExpandedId] = useState<string | null>('GR-2024-301')
 
@@ -211,7 +211,7 @@ export function GoodsReceiptPage() {
                             <Lock size={14} /> Locked by {gr.lockedBy} ({gr.lockMinutes} min)
                           </div>
                         ) : (
-                          <span className="text-mrp-text-muted opacity-40">—</span>
+                          <span className="text-mrp-text-muted opacity-40">â€”</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
@@ -255,7 +255,7 @@ export function GoodsReceiptPage() {
 
                           <div className="p-6">
                             <div className="grid grid-cols-12 gap-6">
-                              {/* Line Items — Blind Receiving */}
+                              {/* Line Items â€” Blind Receiving */}
                               <div className="col-span-12 lg:col-span-9 space-y-3">
                                 <h3 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Line Item Validation</h3>
                                 <div className="bg-mrp-panel border border-mrp-border rounded-sm overflow-hidden">
@@ -364,3 +364,4 @@ export function GoodsReceiptPage() {
     </>
   )
 }
+

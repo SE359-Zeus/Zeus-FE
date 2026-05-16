@@ -19,7 +19,8 @@ import {
   Truck,
   ClipboardList,
   PackageCheck,
-  Send
+  Ship,
+  Boxes
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -34,16 +35,17 @@ const navSections = [
       { href: '/mrp/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/mrp/bom-catalog', label: 'Product Catalog', icon: Package },
       { href: '/mrp/inventory-ledger', label: 'Inventory Ledger', icon: FileText },
-      { href: '/mrp/demand-pos', label: 'Demand & POs', icon: ShoppingCart },
+      { href: '/mrp/demand-pos', label: 'Demand', icon: ShoppingCart },
     ]
   },
   {
     title: 'SCM',
     items: [
-      { href: '/scm/vendor', label: 'Vendor', icon: Truck },
-      { href: '/scm/po-orchestration', label: 'PO Orchestration', icon: ClipboardList },
+      { href: '/scm/vendor', label: 'Supplier', icon: Truck },
+      { href: '/scm/po-orchestration', label: 'Purchase Order', icon: ClipboardList },
       { href: '/scm/goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
-      { href: '/scm/downstream-logistics', label: 'Downstream Logistics', icon: Send },
+      { href: '/scm/downstream-logistics', label: 'Shipment', icon: Ship },
+      { href: '/scm/inventory', label: 'Inventory', icon: Boxes },
     ]
   },
   {

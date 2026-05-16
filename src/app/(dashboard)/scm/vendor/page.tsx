@@ -1,5 +1,5 @@
-import { VendorPage } from '@/components/pages/vendor'
+﻿import { SupplierView } from '@/features/scm/supplier/components/SupplierView'
 
 export default function Page() {
-  return <VendorPage />
+  return <SupplierView />
 }

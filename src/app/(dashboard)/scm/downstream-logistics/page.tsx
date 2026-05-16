@@ -1,5 +1,5 @@
-import { DownstreamLogisticsPage } from '@/components/pages/downstream-logistics'
+﻿import { ShipmentView } from '@/features/scm/shipment/components/ShipmentView'
 
 export default function Page() {
-  return <DownstreamLogisticsPage />
+  return <ShipmentView />
 }
