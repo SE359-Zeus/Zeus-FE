@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import {
-  Search, Plus, ChevronDown, ChevronUp, Pencil, MoreVertical,
-  Download, Truck, ShieldCheck, AlertTriangle, Filter,
+  Search, Plus, ChevronDown, ChevronUp, Pencil,
+  Download, ShieldCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,15 +23,12 @@ interface Supplier {
   contact: string
   tier: SupplierTier
   leadTime: number
-  qualityScore: number
-  onTimeRate: number
   skuMappings: SkuMapping[]
 }
 
 const mockSuppliers: Supplier[] = [
   {
-    id: 'SUP-001', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred',
-    leadTime: 14, qualityScore: 98, onTimeRate: 96,
+    id: 'SUP-001', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred', leadTime: 14,
     skuMappings: [
       { sku: 'SOC-XM100-PRO', name: 'Zeus SOC XM100 Pro (14-Core)', unitPrice: '$580.00', leadTime: 14 },
       { sku: 'SOC-XM100-ULTRA', name: 'Zeus SOC XM100 Ultra (24-Core)', unitPrice: '$920.00', leadTime: 18 },
@@ -39,8 +36,7 @@ const mockSuppliers: Supplier[] = [
     ],
   },
   {
-    id: 'SUP-002', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred',
-    leadTime: 21, qualityScore: 92, onTimeRate: 89,
+    id: 'SUP-002', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred', leadTime: 21,
     skuMappings: [
       { sku: 'SSD-2T-NVME', name: '2TB NVMe Gen5 Enterprise SSD', unitPrice: '$185.00', leadTime: 21 },
       { sku: 'SSD-1T-NVME', name: '1TB NVMe Gen5 SSD', unitPrice: '$110.00', leadTime: 18 },
@@ -48,23 +44,20 @@ const mockSuppliers: Supplier[] = [
     ],
   },
   {
-    id: 'SUP-003', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred',
-    leadTime: 30, qualityScore: 99, onTimeRate: 97,
+    id: 'SUP-003', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred', leadTime: 30,
     skuMappings: [
       { sku: 'GPU-RTX5080-M', name: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: '$890.00', leadTime: 30 },
     ],
   },
   {
-    id: 'SUP-004', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified',
-    leadTime: 7, qualityScore: 85, onTimeRate: 91,
+    id: 'SUP-004', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified', leadTime: 7,
     skuMappings: [
       { sku: 'RAM-32G-DDR5', name: '32GB DDR5-5600 SO-DIMM', unitPrice: '$95.00', leadTime: 7 },
       { sku: 'RAM-16G-DDR5', name: '16GB DDR5-5600 SO-DIMM', unitPrice: '$48.00', leadTime: 7 },
     ],
   },
   {
-    id: 'SUP-005', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified',
-    leadTime: 45, qualityScore: 88, onTimeRate: 82,
+    id: 'SUP-005', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified', leadTime: 45,
     skuMappings: [
       { sku: 'DISP-OLED-16', name: '16" 4K ProArt OLED Panel', unitPrice: '$420.00', leadTime: 45 },
       { sku: 'DISP-OLED-15', name: '15" 4K OLED Panel', unitPrice: '$380.00', leadTime: 40 },
@@ -72,22 +65,19 @@ const mockSuppliers: Supplier[] = [
     ],
   },
   {
-    id: 'SUP-006', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified',
-    leadTime: 10, qualityScore: 94, onTimeRate: 93,
+    id: 'SUP-006', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified', leadTime: 10,
     skuMappings: [
       { sku: 'MOD-WIFI7-AX', name: 'WiFi 7 AX Module', unitPrice: '$35.00', leadTime: 10 },
     ],
   },
   {
-    id: 'SUP-007', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred',
-    leadTime: 12, qualityScore: 96, onTimeRate: 95,
+    id: 'SUP-007', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred', leadTime: 12,
     skuMappings: [
       { sku: 'PSU-GAN-240W', name: '240W GaN Power Supply Unit', unitPrice: '$75.00', leadTime: 12 },
     ],
   },
   {
-    id: 'SUP-008', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review',
-    leadTime: 35, qualityScore: 82, onTimeRate: 78,
+    id: 'SUP-008', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review', leadTime: 35,
     skuMappings: [
       { sku: 'MB-ZEUS-X1', name: 'Zeus X1 Titanium Mainboard', unitPrice: '$650.00', leadTime: 35 },
       { sku: 'MB-AERO-S', name: 'Aero S Mainboard', unitPrice: '$290.00', leadTime: 30 },
@@ -102,11 +92,6 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
   { key: 'Under Review', label: 'Under Review' },
 ]
 
-function scoreColor(score: number) {
-  if (score >= 90) return { bg: 'bg-mrp-success/10', border: 'border-mrp-success/20', text: 'text-mrp-success', dot: 'bg-mrp-success' }
-  if (score >= 70) return { bg: 'bg-mrp-warning/10', border: 'border-mrp-warning/20', text: 'text-mrp-warning', dot: 'bg-mrp-warning' }
-  return { bg: 'bg-mrp-danger/10', border: 'border-mrp-danger/20', text: 'text-mrp-danger', dot: 'bg-mrp-danger' }
-}
 
 function tierBadge(tier: SupplierTier) {
   switch (tier) {
@@ -118,21 +103,7 @@ function tierBadge(tier: SupplierTier) {
 
 const kpiStats = [
   { label: 'Total Active Suppliers', value: '8', color: 'text-white' },
-  { label: 'Avg. Lead Time', value: '18.5', unit: 'days', color: 'text-mrp-primary' },
-  { label: 'Avg. Quality Score', value: '94.2%', color: 'text-mrp-success' },
   { label: 'On-Time Delivery Rate', value: '91.8%', color: 'text-mrp-success' },
-]
-
-// Simple bar chart data for Supplier Risk Analysis
-const riskData = [
-  { name: 'INTEL', value: 98, hex: '#0066CC' },
-  { name: 'SAMS', value: 92, hex: '#0066CC' },
-  { name: 'NVIDIA', value: 99, hex: '#0066CC' },
-  { name: 'HYNIX', value: 85, hex: '#F0AB00' },
-  { name: 'LG', value: 88, hex: '#F0AB00' },
-  { name: 'MURATA', value: 94, hex: '#0066CC' },
-  { name: 'TI', value: 96, hex: '#0066CC' },
-  { name: 'FOXC', value: 78, hex: '#C9190B' },
 ]
 
 export function SupplierView() {
@@ -190,13 +161,12 @@ export function SupplierView() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {kpiStats.map((s) => (
           <div key={s.label} className="bg-mrp-panel border border-mrp-border rounded-sm p-4">
             <span className="block text-[11px] font-bold uppercase tracking-wider text-mrp-text-muted mb-2">{s.label}</span>
             <div className="flex items-baseline gap-1">
               <span className={`font-mono text-2xl font-bold ${s.color}`}>{s.value}</span>
-              {s.unit && <span className="text-sm text-mrp-text-muted">{s.unit}</span>}
             </div>
           </div>
         ))}
@@ -234,7 +204,7 @@ export function SupplierView() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10">
               <tr>
-                {['Supplier ID', 'Name', 'Contact', 'Tier', 'Lead Time', 'Quality Score', 'On-Time Rate', 'Actions'].map((col) => (
+                {['Supplier ID', 'Name', 'Contact', 'Tier', 'Lead Time', 'Actions'].map((col) => (
                   <th
                     key={col}
                     className={`py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap ${
@@ -249,8 +219,6 @@ export function SupplierView() {
             <tbody className="divide-y divide-mrp-border bg-mrp-app">
               {filtered.map((supplier) => {
                 const isExpanded = expandedRows.has(supplier.id)
-                const qCfg = scoreColor(supplier.qualityScore)
-                const oCfg = scoreColor(supplier.onTimeRate)
                 const tCfg = tierBadge(supplier.tier)
 
                 return (
@@ -266,18 +234,6 @@ export function SupplierView() {
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{supplier.leadTime} days</td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 ${qCfg.bg} border ${qCfg.border} ${qCfg.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${qCfg.dot}`} />
-                          {supplier.qualityScore}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 ${oCfg.bg} border ${oCfg.border} ${oCfg.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${oCfg.dot}`} />
-                          {supplier.onTimeRate}%
-                        </span>
-                      </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -354,69 +310,6 @@ export function SupplierView() {
           </div>
         </div>
       </div>
-
-      {/* Bottom Panels: Risk Analysis */}
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Supplier Risk Analysis Chart */}
-        <div className="bg-mrp-panel border border-mrp-border p-6 rounded-sm flex flex-col justify-between h-64 overflow-hidden">
-          <div className="flex items-center justify-between">
-            <h4 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Supplier Risk Analysis - Supply Stability Index</h4>
-            <span className="text-[10px] text-mrp-text-muted">Updated 12 min ago</span>
-          </div>
-          <div className="flex-1 flex items-end gap-2 pt-4 pb-1">
-            {riskData.map((d) => {
-              const barHeight = Math.round((d.value / 100) * 140)
-              return (
-                <div key={d.name} className="flex-1 flex flex-col items-center gap-1 group">
-                  <span className="text-[10px] font-mono text-mrp-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                    {d.value}%
-                  </span>
-                  <div
-                    className="w-full rounded-sm transition-all group-hover:opacity-80"
-                    style={{
-                      height: `${barHeight}px`,
-                      backgroundColor: `${d.hex}20`,
-                      borderTop: `2px solid ${d.hex}`,
-                    }}
-                  />
-                  <span className="text-[9px] text-mrp-text-muted font-mono">{d.name}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Regional Fulfillment Summary */}
-        <div className="bg-mrp-panel border border-mrp-border p-6 rounded-sm flex flex-col justify-between h-64">
-          <div className="flex items-center gap-2 mb-3">
-            <Truck size={14} className="text-mrp-text-muted" />
-            <h4 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Regional Fulfillment Summary</h4>
-          </div>
-          <div className="flex-1 space-y-3 overflow-y-auto">
-            {[
-              { region: 'East Asia (TW, KR, JP)', vendors: 5, avgLead: '18 days', status: 'Optimal' },
-              { region: 'North America (US)', vendors: 2, avgLead: '13 days', status: 'Optimal' },
-              { region: 'Southeast Asia (CN)', vendors: 1, avgLead: '35 days', status: 'At Risk' },
-            ].map((r) => (
-              <div key={r.region} className="bg-mrp-app border border-mrp-border rounded-sm p-3 flex items-center justify-between">
-                <div>
-                  <span className="text-[13px] text-white font-medium">{r.region}</span>
-                  <div className="text-[11px] text-mrp-text-muted mt-0.5">{r.suppliers} suppliers · Avg. {r.avgLead}</div>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider ${
-                  r.status === 'Optimal'
-                    ? 'bg-mrp-success/10 border border-mrp-success/20 text-mrp-success'
-                    : 'bg-mrp-danger/10 border border-mrp-danger/20 text-mrp-danger'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${r.status === 'Optimal' ? 'bg-mrp-success' : 'bg-mrp-danger animate-pulse'}`} />
-                  {r.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </>
   )
 }
-
