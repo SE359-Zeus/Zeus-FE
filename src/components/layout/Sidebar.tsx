@@ -41,10 +41,10 @@ const navSections = [
   {
     title: 'SCM',
     items: [
-      { href: '/scm/vendor', label: 'Supplier', icon: Truck },
+      { href: '/scm/suppliers', label: 'Supplier', icon: Truck },
       { href: '/scm/po-orchestration', label: 'Purchase Order', icon: ClipboardList },
       { href: '/scm/goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
-      { href: '/scm/downstream-logistics', label: 'Shipment', icon: Ship },
+      { href: '/scm/shipments', label: 'Shipment', icon: Ship },
       { href: '/scm/inventory', label: 'Inventory', icon: Boxes },
     ]
   },
