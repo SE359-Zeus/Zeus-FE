@@ -1,9 +1,9 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
   Search, Plus, ChevronDown, ChevronUp, Download, Filter,
-  ChevronLeft, ChevronRight, AlertTriangle, Package,
+  ChevronLeft, ChevronRight, AlertTriangle, Package, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -109,6 +109,20 @@ export function ComponentInventoryView() {
   const [search, setSearch]     = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
+  // Add Component modal
+  const [showAddComponent, setShowAddComponent] = useState(false)
+  const [compForm, setCompForm] = useState({
+    sku: '', name: '', category: '', unitCost: '', reorderPoint: '', supplier: '', location: ''
+  })
+
+  const handleSaveComponent = () => {
+    if (!compForm.sku.trim()) { toast.error('SKU is required'); return }
+    if (!compForm.name.trim()) { toast.error('Component name is required'); return }
+    toast.success('Component Added', { description: `SKU "${compForm.sku}" has been registered` })
+    setShowAddComponent(false)
+    setCompForm({ sku: '', name: '', category: '', unitCost: '', reorderPoint: '', supplier: '', location: '' })
+  }
+
   const filtered = mockComponents.filter((c) => {
     const matchStatus = filter === 'ALL' || c.status === filter
     const matchSearch = search === '' ||
@@ -145,7 +159,7 @@ export function ComponentInventoryView() {
             <Download size={16} /> Export
           </button>
           <button
-            onClick={() => toast.success('Add Component', { description: 'New component registration form opened' })}
+            onClick={() => setShowAddComponent(true)}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
           >
             <Plus size={16} /> Add Component
@@ -349,6 +363,89 @@ export function ComponentInventoryView() {
           </div>
         </div>
       </div>
+
+      {/* Add Component Modal */}
+      {showAddComponent && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Add Component</h3>
+              <button onClick={() => setShowAddComponent(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">SKU</label>
+                  <input value={compForm.sku} onChange={(e) => setCompForm((f) => ({ ...f, sku: e.target.value }))}
+                    placeholder="e.g. SOC-XM100-PRO"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] font-mono focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted placeholder:font-sans" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Category</label>
+                  <select value={compForm.category} onChange={(e) => setCompForm((f) => ({ ...f, category: e.target.value }))}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                    <option value="">Select category...</option>
+                    <option>Processor</option>
+                    <option>GPU</option>
+                    <option>Memory</option>
+                    <option>Storage</option>
+                    <option>Display</option>
+                    <option>Connectivity</option>
+                    <option>Power</option>
+                    <option>Mainboard</option>
+                    <option>Battery</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Component Name</label>
+                <input value={compForm.name} onChange={(e) => setCompForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Zeus SOC XM100 Pro (14-Core)"
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Unit Cost</label>
+                  <input value={compForm.unitCost} onChange={(e) => setCompForm((f) => ({ ...f, unitCost: e.target.value }))}
+                    placeholder="$0.00"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Reorder Point</label>
+                  <input value={compForm.reorderPoint} onChange={(e) => setCompForm((f) => ({ ...f, reorderPoint: e.target.value }))}
+                    type="number" min={0} placeholder="0"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Location</label>
+                  <input value={compForm.location} onChange={(e) => setCompForm((f) => ({ ...f, location: e.target.value }))}
+                    placeholder="WH-A / Zone-C1"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Primary Supplier</label>
+                <select value={compForm.supplier} onChange={(e) => setCompForm((f) => ({ ...f, supplier: e.target.value }))}
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                  <option value="">Select supplier...</option>
+                  <option>Intel Corporation</option>
+                  <option>Samsung Electronics</option>
+                  <option>NVIDIA</option>
+                  <option>SK Hynix</option>
+                  <option>LG Display</option>
+                  <option>Murata Manufacturing</option>
+                  <option>Texas Instruments</option>
+                  <option>Foxconn Technology</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
+              <button onClick={() => setShowAddComponent(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors">Cancel</button>
+              <button onClick={handleSaveComponent} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm">Save Component</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

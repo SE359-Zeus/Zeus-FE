@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
@@ -156,6 +156,18 @@ export function PurchaseOrderView() {
 
   const draftSelected = filtered.filter((p) => selectedRows.has(p.id) && p.status === 'Draft')
 
+  // Create PO modal
+  const [showCreatePO, setShowCreatePO] = useState(false)
+  const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+
+  const handleSavePO = () => {
+    if (!poForm.poNumber.trim()) { toast.error('PO Number is required'); return }
+    if (!poForm.supplier.trim()) { toast.error('Supplier is required'); return }
+    toast.success('Purchase Order Created', { description: `PO "${poForm.poNumber}" created for ${poForm.supplier}` })
+    setShowCreatePO(false)
+    setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+  }
+
   return (
     <>
       {/* Page Header */}
@@ -174,7 +186,7 @@ export function PurchaseOrderView() {
             <Download size={16} /> Export Report
           </button>
           <button
-            onClick={() => toast.success('Create PO', { description: 'New purchase order form opened' })}
+            onClick={() => setShowCreatePO(true)}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
           >
             <Plus size={16} /> Create PO
@@ -423,6 +435,59 @@ export function PurchaseOrderView() {
           </div>
         </div>
       </div>
+
+      {/* Create Purchase Order Modal */}
+      {showCreatePO && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Create Purchase Order</h3>
+              <button onClick={() => setShowCreatePO(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">PO Number</label>
+                  <input value={poForm.poNumber} onChange={(e) => setPoForm((f) => ({ ...f, poNumber: e.target.value }))}
+                    placeholder="e.g. PO-2024-110"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Expected Delivery</label>
+                  <input value={poForm.deliveryDate} onChange={(e) => setPoForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                    type="date"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
+                <select value={poForm.supplier} onChange={(e) => setPoForm((f) => ({ ...f, supplier: e.target.value }))}
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                  <option value="">Select supplier...</option>
+                  <option>Intel Corporation</option>
+                  <option>Samsung Electronics</option>
+                  <option>NVIDIA</option>
+                  <option>SK Hynix</option>
+                  <option>LG Display</option>
+                  <option>Murata Manufacturing</option>
+                  <option>Texas Instruments</option>
+                  <option>Foxconn Technology</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Notes</label>
+                <textarea value={poForm.notes} onChange={(e) => setPoForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={3} placeholder="Additional notes or instructions..."
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted resize-none" />
+              </div>
+            </div>
+            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
+              <button onClick={() => setShowCreatePO(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors">Cancel</button>
+              <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm">Save Purchase Order</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

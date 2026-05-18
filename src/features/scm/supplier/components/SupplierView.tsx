@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import {
   Search, Plus, ChevronDown, ChevronUp, Pencil,
-  Download, ShieldCheck,
+  Download, ShieldCheck, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -111,6 +111,18 @@ export function SupplierView() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['SUP-003']))
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Add Supplier modal
+  const [showAddSupplier, setShowAddSupplier] = useState(false)
+  const [form, setForm] = useState({ name: '', contact: '', tier: 'Qualified' as SupplierTier, leadTime: '' })
+
+  const handleSaveSupplier = () => {
+    if (!form.name.trim()) { toast.error('Supplier name is required'); return }
+    if (!form.contact.trim()) { toast.error('Contact email is required'); return }
+    toast.success('Supplier Added', { description: `"${form.name}" has been registered` })
+    setShowAddSupplier(false)
+    setForm({ name: '', contact: '', tier: 'Qualified', leadTime: '' })
+  }
+
   const filtered = mockSuppliers.filter((v) => {
     const matchesTier = filter === 'ALL' || v.tier === filter
     const matchesSearch = searchQuery === '' ||
@@ -151,7 +163,7 @@ export function SupplierView() {
             />
           </div>
           <button
-            onClick={() => toast.success('Add Supplier', { description: 'Vendor registration form opened' })}
+          onClick={() => setShowAddSupplier(true)}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
           >
             <Plus size={16} />
@@ -310,6 +322,83 @@ export function SupplierView() {
           </div>
         </div>
       </div>
+
+      {/* Add Supplier Modal */}
+
+      {showAddSupplier && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Add Supplier</h3>
+              <button onClick={() => setShowAddSupplier(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier Name</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Samsung Electronics"
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Contact Email</label>
+                <input
+                  value={form.contact}
+                  onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))}
+                  placeholder="e.g. procurement@supplier.com"
+                  type="email"
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Tier</label>
+                  <select
+                    value={form.tier}
+                    onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value as SupplierTier }))}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                  >
+                    <option>Preferred</option>
+                    <option>Qualified</option>
+                    <option>Under Review</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Lead Time (days)</label>
+                  <input
+                    value={form.leadTime}
+                    onChange={(e) => setForm((f) => ({ ...f, leadTime: e.target.value }))}
+                    placeholder="e.g. 14"
+                    type="number" min={1}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAddSupplier(false)}
+                className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSupplier}
+                className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm"
+              >
+                Save Supplier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1,9 +1,9 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
   Download, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, Filter, Truck, Package,
+  Check, Filter, Truck, Package, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -130,6 +130,19 @@ export function ShipmentView() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['SHP-2024-201']))
 
+  // Create Shipment modal
+  const [showCreateShipment, setShowCreateShipment] = useState(false)
+  const [shForm, setShForm] = useState({ poRef: '', supplier: '', carrier: '', shipDate: '', eta: '' })
+
+  const handleSaveShipment = () => {
+    if (!shForm.poRef.trim()) { toast.error('PO Reference is required'); return }
+    if (!shForm.supplier.trim()) { toast.error('Supplier is required'); return }
+    const newId = `SHP-${Date.now().toString().slice(-6)}`
+    toast.success('Shipment Created', { description: `${newId} linked to ${shForm.poRef}` })
+    setShowCreateShipment(false)
+    setShForm({ poRef: '', supplier: '', carrier: '', shipDate: '', eta: '' })
+  }
+
   const filtered = filter === 'ALL' ? mockShipments : mockShipments.filter((s) => s.status === filter)
 
   const toggleRow = (id: string) => {
@@ -154,7 +167,7 @@ export function ShipmentView() {
             <Download size={16} /> Export Report
           </button>
           <button
-            onClick={() => toast.success('Create Shipment', { description: 'New shipment record form opened' })}
+            onClick={() => setShowCreateShipment(true)}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
           >
             <Plus size={16} /> Create Shipment
@@ -356,6 +369,69 @@ export function ShipmentView() {
           </div>
         </div>
       </div>
+
+      {/* Create Shipment Modal */}
+      {showCreateShipment && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Create Shipment</h3>
+              <button onClick={() => setShowCreateShipment(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">PO Reference</label>
+                  <input value={shForm.poRef} onChange={(e) => setShForm((f) => ({ ...f, poRef: e.target.value }))}
+                    placeholder="e.g. PO-2024-110"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Carrier</label>
+                  <select value={shForm.carrier} onChange={(e) => setShForm((f) => ({ ...f, carrier: e.target.value }))}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                    <option value="">Select carrier...</option>
+                    <option>DHL Express</option>
+                    <option>FedEx International</option>
+                    <option>UPS Freight</option>
+                    <option>Maersk Shipping</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
+                <select value={shForm.supplier} onChange={(e) => setShForm((f) => ({ ...f, supplier: e.target.value }))}
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                  <option value="">Select supplier...</option>
+                  <option>Intel Corporation</option>
+                  <option>Samsung Electronics</option>
+                  <option>NVIDIA</option>
+                  <option>SK Hynix</option>
+                  <option>LG Display</option>
+                  <option>Texas Instruments</option>
+                  <option>Foxconn Technology</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Ship Date</label>
+                  <input value={shForm.shipDate} onChange={(e) => setShForm((f) => ({ ...f, shipDate: e.target.value }))}
+                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">ETA</label>
+                  <input value={shForm.eta} onChange={(e) => setShForm((f) => ({ ...f, eta: e.target.value }))}
+                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
+              <button onClick={() => setShowCreateShipment(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors">Cancel</button>
+              <button onClick={handleSaveShipment} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm">Create Shipment</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
