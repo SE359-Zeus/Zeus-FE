@@ -168,3 +168,15 @@
 [data-sonner-toaster] [data-sonner-toast][data-type="error"] {
   border-color: #C9190B !important;
 }
+
+/* Date input: calendar icon cursor fix
+   The ::-webkit-calendar-picker-indicator is a native browser pseudo-element
+   and does NOT inherit cursor from the <input> element.
+   We target it directly here so it shows a pointer on hover. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

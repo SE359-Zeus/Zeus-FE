@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react'
 import {
@@ -438,11 +438,11 @@ export function PurchaseOrderView() {
 
       {/* Create Purchase Order Modal */}
       {showCreatePO && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowCreatePO(false)}>
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-mrp-border flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">Create Purchase Order</h3>
-              <button onClick={() => setShowCreatePO(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+              <button onClick={() => setShowCreatePO(false)} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
@@ -456,7 +456,7 @@ export function PurchaseOrderView() {
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Expected Delivery</label>
                   <input value={poForm.deliveryDate} onChange={(e) => setPoForm((f) => ({ ...f, deliveryDate: e.target.value }))}
                     type="date"
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
                 </div>
               </div>
               <div>
@@ -482,8 +482,8 @@ export function PurchaseOrderView() {
               </div>
             </div>
             <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
-              <button onClick={() => setShowCreatePO(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors">Cancel</button>
-              <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm">Save Purchase Order</button>
+              <button onClick={() => setShowCreatePO(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
+              <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm cursor-pointer">Save Purchase Order</button>
             </div>
           </div>
         </div>
@@ -491,4 +491,5 @@ export function PurchaseOrderView() {
     </>
   )
 }
+
 

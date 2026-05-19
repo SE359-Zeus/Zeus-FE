@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react'
 import {
@@ -372,11 +372,11 @@ export function ShipmentView() {
 
       {/* Create Shipment Modal */}
       {showCreateShipment && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateShipment(false)}>
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-mrp-border flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">Create Shipment</h3>
-              <button onClick={() => setShowCreateShipment(false)} className="text-mrp-text-muted hover:text-white transition-colors"><X size={18} /></button>
+              <button onClick={() => setShowCreateShipment(false)} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
@@ -416,18 +416,18 @@ export function ShipmentView() {
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Ship Date</label>
                   <input value={shForm.shipDate} onChange={(e) => setShForm((f) => ({ ...f, shipDate: e.target.value }))}
-                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">ETA</label>
                   <input value={shForm.eta} onChange={(e) => setShForm((f) => ({ ...f, eta: e.target.value }))}
-                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm" />
+                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
                 </div>
               </div>
             </div>
             <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
-              <button onClick={() => setShowCreateShipment(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors">Cancel</button>
-              <button onClick={handleSaveShipment} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm">Create Shipment</button>
+              <button onClick={() => setShowCreateShipment(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
+              <button onClick={handleSaveShipment} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm cursor-pointer">Create Shipment</button>
             </div>
           </div>
         </div>
@@ -435,3 +435,4 @@ export function ShipmentView() {
     </>
   )
 }
+
