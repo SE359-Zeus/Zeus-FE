@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import {
   Search, Plus, ChevronDown, ChevronUp, Pencil,
-  Download, ShieldCheck, X,
+  Download, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -28,59 +28,63 @@ interface Supplier {
 
 const mockSuppliers: Supplier[] = [
   {
-    id: 'SUP-001', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred', leadTime: 14,
+    id: 'INTL-CPU-US', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred', leadTime: 14,
     skuMappings: [
-      { sku: 'SOC-XM100-PRO', name: 'Zeus SOC XM100 Pro (14-Core)', unitPrice: '$580.00', leadTime: 14 },
-      { sku: 'SOC-XM100-ULTRA', name: 'Zeus SOC XM100 Ultra (24-Core)', unitPrice: '$920.00', leadTime: 18 },
-      { sku: 'SOC-XM100-LT', name: 'Zeus SOC XM100 LT (8-Core)', unitPrice: '$340.00', leadTime: 12 },
+      { sku: 'CPU-XM1-14C-55W', name: 'Zeus SOC XM100 Pro (14-Core)', unitPrice: '$580.00', leadTime: 14 },
+      { sku: 'CPU-XM1-24C-65W', name: 'Zeus SOC XM100 Ultra (24-Core)', unitPrice: '$920.00', leadTime: 18 },
+      { sku: 'CPU-XM1-8C-28W',  name: 'Zeus SOC XM100 LT (8-Core)', unitPrice: '$340.00', leadTime: 12 },
     ],
   },
   {
-    id: 'SUP-002', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred', leadTime: 21,
+    id: 'SMSG-MEM-KR', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred', leadTime: 21,
     skuMappings: [
-      { sku: 'SSD-2T-NVME', name: '2TB NVMe Gen5 Enterprise SSD', unitPrice: '$185.00', leadTime: 21 },
-      { sku: 'SSD-1T-NVME', name: '1TB NVMe Gen5 SSD', unitPrice: '$110.00', leadTime: 18 },
-      { sku: 'RAM-64G-DDR5', name: '64GB DDR5-6400 ECC SO-DIMM', unitPrice: '$210.00', leadTime: 24 },
+      { sku: 'SSD-2T-G5-7GBs',  name: '2TB NVMe Gen5 Enterprise SSD', unitPrice: '$185.00', leadTime: 21 },
+      { sku: 'SSD-1T-G5-7GBs',  name: '1TB NVMe Gen5 SSD', unitPrice: '$110.00', leadTime: 18 },
+      { sku: 'RAM-64G-D5-6400', name: '64GB DDR5-6400 ECC SO-DIMM', unitPrice: '$210.00', leadTime: 24 },
     ],
   },
   {
-    id: 'SUP-003', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred', leadTime: 30,
+    id: 'NVDA-GPU-US', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred', leadTime: 30,
     skuMappings: [
-      { sku: 'GPU-RTX5080-M', name: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: '$890.00', leadTime: 30 },
+      { sku: 'GPU-5080M-16G-150W', name: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: '$890.00', leadTime: 30 },
+      { sku: 'GPU-5070M-12G-120W', name: 'NVIDIA RTX 5070 Mobile (12GB)', unitPrice: '$620.00', leadTime: 28 },
     ],
   },
   {
-    id: 'SUP-004', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified', leadTime: 7,
+    id: 'SKHX-RAM-KR', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified', leadTime: 7,
     skuMappings: [
-      { sku: 'RAM-32G-DDR5', name: '32GB DDR5-5600 SO-DIMM', unitPrice: '$95.00', leadTime: 7 },
-      { sku: 'RAM-16G-DDR5', name: '16GB DDR5-5600 SO-DIMM', unitPrice: '$48.00', leadTime: 7 },
+      { sku: 'RAM-32G-D5-5600', name: '32GB DDR5-5600 SO-DIMM', unitPrice: '$95.00', leadTime: 7 },
+      { sku: 'RAM-16G-D5-5600', name: '16GB DDR5-5600 SO-DIMM', unitPrice: '$48.00', leadTime: 7 },
+      { sku: 'RAM-8G-D5-5600',  name: '8GB DDR5-5600 SO-DIMM', unitPrice: '$25.00', leadTime: 5 },
     ],
   },
   {
-    id: 'SUP-005', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified', leadTime: 45,
+    id: 'LGD-DSP-KR', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified', leadTime: 45,
     skuMappings: [
-      { sku: 'DISP-OLED-16', name: '16" 4K ProArt OLED Panel', unitPrice: '$420.00', leadTime: 45 },
-      { sku: 'DISP-OLED-15', name: '15" 4K OLED Panel', unitPrice: '$380.00', leadTime: 40 },
-      { sku: 'DISP-IPS-13', name: '13" FHD IPS Panel', unitPrice: '$120.00', leadTime: 30 },
+      { sku: 'DSP-OLED16-4K-8W',  name: '16" 4K ProArt OLED Panel', unitPrice: '$420.00', leadTime: 45 },
+      { sku: 'DSP-OLED15-4K-7W',  name: '15" 4K OLED Panel', unitPrice: '$380.00', leadTime: 40 },
+      { sku: 'DSP-IPS13-FHD-4W',  name: '13" FHD IPS Panel', unitPrice: '$120.00', leadTime: 30 },
     ],
   },
   {
-    id: 'SUP-006', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified', leadTime: 10,
+    id: 'MRAT-MOD-JP', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified', leadTime: 10,
     skuMappings: [
-      { sku: 'MOD-WIFI7-AX', name: 'WiFi 7 AX Module', unitPrice: '$35.00', leadTime: 10 },
+      { sku: 'MOD-WIFI7-AX-2W',  name: 'WiFi 7 AX Module', unitPrice: '$35.00', leadTime: 10 },
+      { sku: 'MOD-BT53-LE-0.5W', name: 'Bluetooth 5.3 LE Module', unitPrice: '$12.00', leadTime: 8 },
     ],
   },
   {
-    id: 'SUP-007', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred', leadTime: 12,
+    id: 'TI-PWR-US', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred', leadTime: 12,
     skuMappings: [
-      { sku: 'PSU-GAN-240W', name: '240W GaN Power Supply Unit', unitPrice: '$75.00', leadTime: 12 },
+      { sku: 'PSU-GaN-240W-95E', name: '240W GaN Power Supply Unit', unitPrice: '$75.00', leadTime: 12 },
+      { sku: 'IC-BUCK-5A-3.3V',  name: '5A Buck Converter IC', unitPrice: '$4.00', leadTime: 7 },
     ],
   },
   {
-    id: 'SUP-008', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review', leadTime: 35,
+    id: 'FOXC-MB-TW', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review', leadTime: 35,
     skuMappings: [
-      { sku: 'MB-ZEUS-X1', name: 'Zeus X1 Titanium Mainboard', unitPrice: '$650.00', leadTime: 35 },
-      { sku: 'MB-AERO-S', name: 'Aero S Mainboard', unitPrice: '$290.00', leadTime: 30 },
+      { sku: 'MB-ZX1-Ti-ODM',   name: 'Zeus X1 Titanium Mainboard', unitPrice: '$650.00', leadTime: 35 },
+      { sku: 'MB-AS1-Slim-ODM', name: 'Aero S Mainboard', unitPrice: '$290.00', leadTime: 30 },
     ],
   },
 ]
@@ -95,9 +99,17 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
 
 function tierBadge(tier: SupplierTier) {
   switch (tier) {
-    case 'Preferred': return { bg: 'bg-mrp-success/10', border: 'border-mrp-success/20', text: 'text-mrp-success', dot: 'bg-mrp-success' }
-    case 'Qualified': return { bg: 'bg-mrp-primary/10', border: 'border-mrp-primary/20', text: 'text-mrp-primary', dot: 'bg-mrp-primary' }
+    case 'Preferred':    return { bg: 'bg-mrp-success/10', border: 'border-mrp-success/20', text: 'text-mrp-success', dot: 'bg-mrp-success' }
+    case 'Qualified':    return { bg: 'bg-mrp-primary/10', border: 'border-mrp-primary/20', text: 'text-mrp-primary', dot: 'bg-mrp-primary' }
     case 'Under Review': return { bg: 'bg-mrp-warning/10', border: 'border-mrp-warning/20', text: 'text-mrp-warning', dot: 'bg-mrp-warning animate-pulse' }
+  }
+}
+
+function tierLabel(tier: SupplierTier): string {
+  switch (tier) {
+    case 'Preferred':    return 'Tier 1'
+    case 'Qualified':    return 'Tier 2'
+    case 'Under Review': return 'Tier 3'
   }
 }
 
@@ -216,10 +228,11 @@ export function SupplierView() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10">
               <tr>
-                {['Supplier ID', 'Name', 'Contact', 'Tier', 'Lead Time', 'Actions'].map((col) => (
+                {['#', 'Supplier ID', 'Name', 'Contact', 'Tier', 'Lead Time', 'Actions'].map((col) => (
                   <th
                     key={col}
                     className={`py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap ${
+                      col === '#' ? 'w-10 text-center' :
                       ['Lead Time', 'Actions'].includes(col) ? 'text-right' : ''
                     }`}
                   >
@@ -229,20 +242,21 @@ export function SupplierView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-mrp-border bg-mrp-app">
-              {filtered.map((supplier) => {
+              {filtered.map((supplier, idx) => {
                 const isExpanded = expandedRows.has(supplier.id)
                 const tCfg = tierBadge(supplier.tier)
 
                 return (
                   <React.Fragment key={supplier.id}>
                     <tr className={`hover:bg-mrp-panel transition-colors group ${isExpanded ? `bg-mrp-panel` : ``}`}>
-                      <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{supplier.id}</td>
+                      <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted text-center">{idx + 1}</td>
+                      <td className="py-3 px-4 font-mono text-[12px] text-mrp-text-muted whitespace-nowrap">{supplier.id}</td>
                       <td className="py-3 px-4 text-[13px] text-white font-medium">{supplier.name}</td>
                       <td className="py-3 px-4 text-[13px] text-mrp-text-secondary">{supplier.contact}</td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center gap-1.5 ${tCfg.bg} border ${tCfg.border} ${tCfg.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${tCfg.dot}`} />
-                          {supplier.tier}
+                          {tierLabel(supplier.tier)}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{supplier.leadTime} days</td>
@@ -273,15 +287,8 @@ export function SupplierView() {
                           <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4">
                             <div className="flex items-center justify-between mb-3 border-b border-mrp-border pb-2">
                               <h4 className="text-[11px] font-bold text-mrp-primary uppercase tracking-wider">
-                                SKU Mapping - {supplier.name}
+                                SKU Mapping — {supplier.name}
                               </h4>
-                              <button
-                                onClick={() => toast.success('Supplier Selected', { description: `${supplier.name} selected for PO generation` })}
-                                className="flex items-center gap-1 px-3 py-1 text-mrp-primary border border-mrp-primary/40 hover:bg-mrp-primary hover:text-white transition-all text-[11px] font-bold uppercase tracking-wider rounded-sm"
-                              >
-                                <ShieldCheck size={12} />
-                                Select for Purchase Order
-                              </button>
                             </div>
                             <div className="grid grid-cols-4 gap-4 text-[13px]">
                               <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU</div>

@@ -1,9 +1,9 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
   Download, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, MoreVertical, Pencil, Filter, CheckCircle, Truck, X,
+  Check, Filter, CheckCircle, Truck, X, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -19,6 +19,48 @@ interface PurchaseOrder {
   id: string; vendor: string; targetBuild: string; status: POStatus
   totalValue: number; createdDate: string; expectedDelivery: string
   lineItems: LineItem[]; paymentTerms: string
+}
+
+interface SkuInfo { sku: string; description: string; unitPrice: number }
+interface FormLineItem { sku: string; qty: number; unitPrice: number }
+
+const SUPPLIER_SKUS: Record<string, SkuInfo[]> = {
+  'Intel Corporation': [
+    { sku: 'CPU-XM1-14C-55W', description: 'Zeus SOC XM100 Pro (14-Core)',    unitPrice: 580 },
+    { sku: 'CPU-XM1-24C-65W', description: 'Zeus SOC XM100 Ultra (24-Core)',  unitPrice: 920 },
+    { sku: 'CPU-XM1-8C-28W',  description: 'Zeus SOC XM100 LT (8-Core)',      unitPrice: 340 },
+  ],
+  'Samsung Electronics': [
+    { sku: 'SSD-2T-G5-7GBs',  description: '2TB NVMe Gen5 Enterprise SSD',   unitPrice: 185 },
+    { sku: 'SSD-1T-G5-7GBs',  description: '1TB NVMe Gen5 SSD',              unitPrice: 110 },
+    { sku: 'RAM-64G-D5-6400', description: '64GB DDR5-6400 ECC SO-DIMM',      unitPrice: 210 },
+  ],
+  'NVIDIA': [
+    { sku: 'GPU-5080M-16G-150W', description: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: 890 },
+    { sku: 'GPU-5070M-12G-120W', description: 'NVIDIA RTX 5070 Mobile (12GB)', unitPrice: 620 },
+  ],
+  'SK Hynix': [
+    { sku: 'RAM-32G-D5-5600', description: '32GB DDR5-5600 SO-DIMM',          unitPrice: 95 },
+    { sku: 'RAM-16G-D5-5600', description: '16GB DDR5-5600 SO-DIMM',          unitPrice: 48 },
+    { sku: 'RAM-8G-D5-5600',  description: '8GB DDR5-5600 SO-DIMM',           unitPrice: 25 },
+  ],
+  'LG Display': [
+    { sku: 'DSP-OLED16-4K-8W',  description: '16" 4K ProArt OLED Panel',     unitPrice: 420 },
+    { sku: 'DSP-OLED15-4K-7W',  description: '15" 4K OLED Panel',            unitPrice: 380 },
+    { sku: 'DSP-IPS13-FHD-4W',  description: '13" FHD IPS Panel',            unitPrice: 120 },
+  ],
+  'Murata Manufacturing': [
+    { sku: 'MOD-WIFI7-AX-2W',   description: 'WiFi 7 AX Module',             unitPrice: 35 },
+    { sku: 'MOD-BT53-LE-0.5W',  description: 'Bluetooth 5.3 LE Module',      unitPrice: 12 },
+  ],
+  'Texas Instruments': [
+    { sku: 'PSU-GaN-240W-95E',  description: '240W GaN Power Supply Unit',   unitPrice: 75 },
+    { sku: 'IC-BUCK-5A-3.3V',   description: '5A Buck Converter IC',         unitPrice: 4  },
+  ],
+  'Foxconn Technology': [
+    { sku: 'MB-ZX1-Ti-ODM',    description: 'Zeus X1 Titanium Mainboard',    unitPrice: 650 },
+    { sku: 'MB-AS1-Slim-ODM',  description: 'Aero S Mainboard',              unitPrice: 290 },
+  ],
 }
 
 const mockPOs: PurchaseOrder[] = [
@@ -159,13 +201,46 @@ export function PurchaseOrderView() {
   // Create PO modal
   const [showCreatePO, setShowCreatePO] = useState(false)
   const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+  const [formItems, setFormItems] = useState<FormLineItem[]>([])
+
+  const supplierSkus = SUPPLIER_SKUS[poForm.supplier] ?? []
+
+  const addFormItem = () => {
+    if (!poForm.supplier) { toast.error('Choose Supplier first'); return }
+    setFormItems(prev => [...prev, { sku: '', qty: 1, unitPrice: 0 }])
+  }
+
+  const updateFormItem = (idx: number, patch: Partial<FormLineItem>) => {
+    setFormItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item
+      const updated = { ...item, ...patch }
+      if (patch.sku) {
+        const info = supplierSkus.find(s => s.sku === patch.sku)
+        if (info) updated.unitPrice = info.unitPrice
+      }
+      return updated
+    }))
+  }
+
+  const removeFormItem = (idx: number) => {
+    setFormItems(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const formTotal = formItems.reduce((sum, i) => sum + i.qty * i.unitPrice, 0)
+
+  const resetForm = () => {
+    setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+    setFormItems([])
+  }
 
   const handleSavePO = () => {
     if (!poForm.poNumber.trim()) { toast.error('PO Number is required'); return }
     if (!poForm.supplier.trim()) { toast.error('Supplier is required'); return }
-    toast.success('Purchase Order Created', { description: `PO "${poForm.poNumber}" created for ${poForm.supplier}` })
+    if (formItems.length === 0) { toast.error('Add at least one SKU to order'); return }
+    if (formItems.some(i => !i.sku)) { toast.error('Choose SKU for all lines'); return }
+    toast.success('Purchase Order Created', { description: `PO "${poForm.poNumber}" — ${formItems.length} SKU(s) từ ${poForm.supplier}` })
     setShowCreatePO(false)
-    setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+    resetForm()
   }
 
   return (
@@ -438,13 +513,19 @@ export function PurchaseOrderView() {
 
       {/* Create Purchase Order Modal */}
       {showCreatePO && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowCreatePO(false)}>
-          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => { setShowCreatePO(false); resetForm() }}>
+          <div className="bg-mrp-panel border border-mrp-border w-full max-w-2xl rounded-sm shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="p-4 border-b border-mrp-border flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-bold text-white">Create Purchase Order</h3>
-              <button onClick={() => setShowCreatePO(false)} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+              <button onClick={() => { setShowCreatePO(false); resetForm() }} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
             </div>
-            <div className="p-6 space-y-5">
+
+            {/* Scrollable Body */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+
+              {/* Row 1: PO Number + Delivery */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">PO Number</label>
@@ -459,31 +540,136 @@ export function PurchaseOrderView() {
                     className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
                 </div>
               </div>
+
+              {/* Supplier */}
               <div>
                 <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
-                <select value={poForm.supplier} onChange={(e) => setPoForm((f) => ({ ...f, supplier: e.target.value }))}
-                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm">
+                <select
+                  value={poForm.supplier}
+                  onChange={(e) => { setPoForm((f) => ({ ...f, supplier: e.target.value })); setFormItems([]) }}
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                >
                   <option value="">Select supplier...</option>
-                  <option>Intel Corporation</option>
-                  <option>Samsung Electronics</option>
-                  <option>NVIDIA</option>
-                  <option>SK Hynix</option>
-                  <option>LG Display</option>
-                  <option>Murata Manufacturing</option>
-                  <option>Texas Instruments</option>
-                  <option>Foxconn Technology</option>
+                  {Object.keys(SUPPLIER_SKUS).map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
+
+              {/* SKU Order Items */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
+                    Order Items
+                    {formItems.length > 0 && <span className="ml-2 text-mrp-primary">({formItems.length} SKU)</span>}
+                  </label>
+                  <button
+                    onClick={addFormItem}
+                    disabled={!poForm.supplier}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border border-mrp-primary text-mrp-primary hover:bg-mrp-primary hover:text-white rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={12} /> Add SKU
+                  </button>
+                </div>
+
+                {!poForm.supplier && (
+                  <div className="border border-dashed border-mrp-border rounded-sm p-4 text-center text-[12px] text-mrp-text-muted">
+                    Select Supplier to view available SKUs
+                  </div>
+                )}
+
+                {poForm.supplier && formItems.length === 0 && (
+                  <div className="border border-dashed border-mrp-border rounded-sm p-4 text-center text-[12px] text-mrp-text-muted">
+                    No SKU selected yet. Click <span className="text-mrp-primary font-bold">+ Add SKU</span> to add one.
+                  </div>
+                )}
+
+                {formItems.length > 0 && (
+                  <div className="border border-mrp-border rounded-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-mrp-app border-b border-mrp-border">
+                        <tr>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[45%]">SKU</th>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[15%]">Qty</th>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[20%] text-right">Unit Price</th>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[15%] text-right">Total</th>
+                          <th className="w-8" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-mrp-border">
+                        {formItems.map((item, idx) => {
+                          const skuInfo = supplierSkus.find(s => s.sku === item.sku)
+                          return (
+                            <tr key={idx} className="bg-mrp-app/50">
+                              <td className="py-2 px-3">
+                                <select
+                                  value={item.sku}
+                                  onChange={(e) => updateFormItem(idx, { sku: e.target.value })}
+                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                                >
+                                  <option value="">Select SKU...</option>
+                                  {supplierSkus.map(s => (
+                                    <option key={s.sku} value={s.sku}
+                                      disabled={formItems.some((fi, fi_idx) => fi_idx !== idx && fi.sku === s.sku)}
+                                    >
+                                      {s.sku} — {s.description}
+                                    </option>
+                                  ))}
+                                </select>
+                                {skuInfo && <p className="text-[10px] text-mrp-text-muted mt-0.5 truncate">{skuInfo.description}</p>}
+                              </td>
+                              <td className="py-2 px-3">
+                                <input
+                                  type="number" min={1} value={item.qty}
+                                  onChange={(e) => updateFormItem(idx, { qty: Math.max(1, Number(e.target.value)) })}
+                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                                />
+                              </td>
+                              <td className="py-2 px-3 text-right">
+                                <span className={`font-mono text-[12px] ${item.sku ? 'text-white' : 'text-mrp-text-muted'}`}>
+                                  {item.sku ? fmt(item.unitPrice) : '—'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 font-mono text-[12px] text-white text-right whitespace-nowrap">
+                                {fmt(item.qty * item.unitPrice)}
+                              </td>
+                              <td className="py-2 px-2 text-center">
+                                <button onClick={() => removeFormItem(idx)} className="text-mrp-text-muted hover:text-red-400 transition-colors">
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot className="border-t-2 border-mrp-border bg-mrp-panel">
+                        <tr>
+                          <td colSpan={3} className="py-2 px-3 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Grand Total</td>
+                          <td className="py-2 px-3 font-mono text-[13px] font-bold text-mrp-primary text-right">{fmt(formTotal)}</td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
               <div>
                 <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Notes</label>
                 <textarea value={poForm.notes} onChange={(e) => setPoForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={3} placeholder="Additional notes or instructions..."
+                  rows={2} placeholder="Additional notes or instructions..."
                   className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted resize-none" />
               </div>
             </div>
-            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">
-              <button onClick={() => setShowCreatePO(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
-              <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm cursor-pointer">Save Purchase Order</button>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex items-center justify-between flex-shrink-0">
+              <span className="text-[12px] text-mrp-text-muted">
+                {formItems.length > 0 && <>{formItems.length} SKU · <span className="text-white font-mono font-bold">{fmt(formTotal)}</span></>}
+              </span>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowCreatePO(false); resetForm() }} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
+                <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm cursor-pointer">Save Purchase Order</button>
+              </div>
             </div>
           </div>
         </div>
