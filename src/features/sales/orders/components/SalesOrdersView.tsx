@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { 
   Search, Filter, Calendar, X, Lock, Unlock, 
-  MapPin, Package, ShoppingCart, DollarSign, CheckCircle 
+  MapPin, Package, ShoppingCart, DollarSign, CheckCircle, Factory 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,39 +23,35 @@ interface Order {
 const mockOrders: Order[] = [
   {
     id: 'SO-2605-001', clientId: 'CLI-809', clientName: 'TechCorp Solutions',
-    requiredDate: '2026-05-20', totalValue: '$14,500.00', status: 'pending',
+    requiredDate: '2026-05-20', totalValue: '$75,000.00', status: 'pending',
     isLocked: false, destination: '123 Innovation Drive, Silicon Valley, CA 94043',
     items: [
-      { sku: 'SOC-XM100-PRO', qty: 10, unitPrice: '$580.00' },
-      { sku: 'RAM-64G-DDR5', qty: 15, unitPrice: '$210.00' }
+      { sku: 'PROD-ZEUS-X1', qty: 10, unitPrice: '$4,500.00' },
+      { sku: 'PROD-AERO-S', qty: 20, unitPrice: '$1,500.00' }
     ]
   },
   {
     id: 'SO-2605-002', clientId: 'CLI-442', clientName: 'Global Logistics',
-    requiredDate: '2026-05-18', totalValue: '$32,200.00', status: 'processing',
+    requiredDate: '2026-05-18', totalValue: '$140,000.00', status: 'processing',
     isLocked: true, destination: 'Port Terminal 4, Seattle, WA 98101',
     items: [
-      { sku: 'DISP-OLED-16', qty: 50, unitPrice: '$420.00' },
-      { sku: 'BATT-LIPO-99W', qty: 50, unitPrice: '$115.00' },
-      { sku: 'MB-ZEUS-X1', qty: 10, unitPrice: '$650.00' }
+      { sku: 'PROD-TITAN-P', qty: 50, unitPrice: '$2,800.00' }
     ]
   },
   {
     id: 'SO-2605-003', clientId: 'CLI-015', clientName: 'Nexus Retail (B2C)',
-    requiredDate: '2026-05-19', totalValue: '$4,450.00', status: 'delivering',
+    requiredDate: '2026-05-19', totalValue: '$7,500.00', status: 'delivering',
     isLocked: true, destination: '88 Retail Parkway, Austin, TX 78701',
     items: [
-      { sku: 'GPU-RTX5080-M', qty: 5, unitPrice: '$890.00' }
+      { sku: 'PROD-AERO-S', qty: 5, unitPrice: '$1,500.00' }
     ]
   },
   {
     id: 'SO-2605-004', clientId: 'CLI-999', clientName: 'Apex Data Centers',
-    requiredDate: '2026-05-15', totalValue: '$85,000.00', status: 'completed',
+    requiredDate: '2026-05-15', totalValue: '$170,000.00', status: 'completed',
     isLocked: true, destination: 'Server Rack 12, Ashburn, VA 20147',
     items: [
-      { sku: 'SOC-XM100-ULTRA', qty: 50, unitPrice: '$920.00' },
-      { sku: 'SSD-2T-NVME', qty: 100, unitPrice: '$185.00' },
-      { sku: 'RAM-64G-DDR5', qty: 100, unitPrice: '$210.00' }
+      { sku: 'PROD-SERV-R1', qty: 20, unitPrice: '$8,500.00' } 
     ]
   }
 ]
@@ -253,7 +249,9 @@ export function SalesOrdersView() {
                 </div>
               </div>
             </div>
+
             <div className="px-6 py-4 border-t border-mrp-border bg-mrp-app/50 flex justify-end gap-3 shrink-0">
+              
               <button 
                 onClick={() => toast.error('Action denied', { description: 'Cannot delete locked order' })}
                 disabled={selectedOrder.isLocked}
@@ -261,13 +259,53 @@ export function SalesOrdersView() {
               >
                 Cancel Order
               </button>
-              <button 
-                onClick={() => toast.success('Saved', { description: 'Updates applied successfully' })}
-                disabled={selectedOrder.isLocked}
-                className="px-4 py-2 bg-mrp-primary text-white text-[13px] font-medium rounded-sm hover:bg-mrp-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Save Changes
-              </button>
+              
+              {selectedOrder.status === 'pending' && (
+                <button 
+                  onClick={() => toast.success('Atomic RESERVE Triggered', { description: 'Inventory soft-locked in MRP Product Catalog.' })}
+                  className="px-4 py-2 bg-mrp-primary text-white text-[13px] font-medium rounded-sm hover:bg-mrp-primary-hover transition-colors flex items-center gap-2"
+                >
+                  <Package size={14} />
+                  Reserve Inventory (MRP)
+                </button>
+              )}
+
+              {selectedOrder.status === 'processing' && (
+                <>
+                  <button 
+                    onClick={() => toast.warning('Force Allocation Executed', { description: 'Bypassing queue for partial fulfillment.' })}
+                    className="px-4 py-2 border border-mrp-warning/40 text-mrp-warning text-[13px] font-medium rounded-sm hover:bg-mrp-warning hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    Force Allocation
+                  </button>
+
+                  <button 
+                    onClick={() => toast.success('Manufacturing Order Created', { description: 'Sales Order pipeline successfully transmitted to MRP production queue.' })}
+                    className="px-4 py-2 bg-mrp-primary/20 text-mrp-primary border border-mrp-primary/50 text-[13px] font-medium rounded-sm hover:bg-mrp-primary hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <Factory size={14} />
+                    Convert to MO (MRP)
+                  </button>
+
+                  <button 
+                    onClick={() => toast.success('Manifest Transmitted', { description: 'Dispatch trigger sent to SCM Logistics.' })}
+                    className="px-4 py-2 bg-mrp-success/20 text-mrp-success border border-mrp-success/50 text-[13px] font-medium rounded-sm hover:bg-mrp-success hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <ShoppingCart size={14} />
+                    Dispatch Manifest (SCM)
+                  </button>
+                </>
+              )}
+              
+              {(selectedOrder.status === 'delivering' || selectedOrder.status === 'completed') && (
+                <button 
+                  onClick={() => toast.info('Logistics Tracking', { description: 'Fetching tracking data from SCM...' })}
+                  className="px-4 py-2 bg-mrp-panel border border-mrp-border text-white text-[13px] font-medium rounded-sm hover:bg-mrp-border transition-colors flex items-center gap-2"
+                >
+                  <MapPin size={14} />
+                  Track Shipment
+                </button>
+              )}
             </div>
           </div>
         </>

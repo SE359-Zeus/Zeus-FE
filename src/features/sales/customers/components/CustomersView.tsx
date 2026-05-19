@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Filter, Edit, X, Users, Building, User } from 'lucide-react'
+import { Search, Filter, Edit, X, Users, Building, User, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Customer {
@@ -24,6 +24,8 @@ const mockCustomers: Customer[] = [
 export function CustomersView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  
   const filteredCustomers = mockCustomers.filter(c => 
     c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -36,11 +38,19 @@ export function CustomersView() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white m-0">Client Registry</h1>
-        <p className="text-sm text-mrp-text-secondary mt-1">
-          Manage customer profiles, default shipping destinations, and account tiers.
-        </p>
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-white m-0">Client Registry</h1>
+          <p className="text-sm text-mrp-text-secondary mt-1">
+            Manage customer profiles, default shipping destinations, and account tiers.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white rounded-sm text-sm font-medium transition-colors flex items-center gap-2"
+        >
+          <Plus size={16} className="shrink-0" /> Add Client
+        </button>
       </div>
 
       <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-sm overflow-hidden flex flex-col">
@@ -130,14 +140,12 @@ export function CustomersView() {
 
       {editingCustomer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Overlay */}
           <div 
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setEditingCustomer(null)}
           />
 
           <div className="relative w-full max-w-lg bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl flex flex-col">
-
             <div className="px-6 py-4 border-b border-mrp-border flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users size={18} className="text-mrp-primary" /> Edit Customer Profile
@@ -202,7 +210,6 @@ export function CustomersView() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-mrp-border bg-mrp-app/50 flex justify-end gap-3">
               <button 
                 onClick={() => setEditingCustomer(null)}
@@ -217,7 +224,56 @@ export function CustomersView() {
                 Save Profile
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="relative w-full max-w-lg bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl flex flex-col">
+            <div className="px-6 py-4 border-b border-mrp-border flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Users size={18} className="text-mrp-primary" /> Add New Client
+              </h2>
+              <button onClick={() => setShowCreateModal(false)} className="text-mrp-text-muted hover:text-white p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Client Name</label>
+                <input type="text" placeholder="e.g. Acme Corporation" className="w-full bg-mrp-app border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-white focus:outline-none focus:border-mrp-primary placeholder:text-mrp-text-muted" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Account Tier</label>
+                <select className="w-full bg-mrp-app border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-white focus:outline-none focus:border-mrp-primary cursor-pointer">
+                  <option value="B2B">B2B (Enterprise)</option>
+                  <option value="B2C">B2C (Retail)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Default Destination Address</label>
+                <textarea rows={3} placeholder="Enter full physical shipping address..." className="w-full bg-mrp-app border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-white focus:outline-none focus:border-mrp-primary resize-none placeholder:text-mrp-text-muted" />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-mrp-border bg-mrp-app/50 flex justify-end gap-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-[13px] font-medium text-mrp-text-muted hover:text-white">Cancel</button>
+              <button 
+                onClick={() => {
+                  toast.success('Client Created', { description: 'New client endpoint simulation successful.' })
+                  setShowCreateModal(false)
+                }}
+                className="px-5 py-2 bg-mrp-primary text-white text-[13px] font-medium rounded-sm hover:bg-mrp-primary-hover"
+              >
+                Create Client
+              </button>
+            </div>
           </div>
         </div>
       )}
