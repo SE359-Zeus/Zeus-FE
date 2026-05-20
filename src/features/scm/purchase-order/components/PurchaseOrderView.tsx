@@ -26,40 +26,40 @@ interface FormLineItem { sku: string; qty: number; unitPrice: number }
 
 const SUPPLIER_SKUS: Record<string, SkuInfo[]> = {
   'Intel Corporation': [
-    { sku: 'CPU-XM1-14C-55W', description: 'Zeus SOC XM100 Pro (14-Core)',    unitPrice: 580 },
-    { sku: 'CPU-XM1-24C-65W', description: 'Zeus SOC XM100 Ultra (24-Core)',  unitPrice: 920 },
-    { sku: 'CPU-XM1-8C-28W',  description: 'Zeus SOC XM100 LT (8-Core)',      unitPrice: 340 },
+    { sku: 'CPU-XM100PRO-14C-55W',  description: 'Zeus SOC XM100 Pro (14-Core, 5nm)',   unitPrice: 580 },
+    { sku: 'CPU-XM100ULT-24C-65W', description: 'Zeus SOC XM100 Ultra (24-Core, 5nm)',  unitPrice: 920 },
+    { sku: 'CPU-XM100LT-8C-28W',   description: 'Zeus SOC XM100 LT (8-Core, 7nm)',      unitPrice: 340 },
   ],
   'Samsung Electronics': [
-    { sku: 'SSD-2T-G5-7GBs',  description: '2TB NVMe Gen5 Enterprise SSD',   unitPrice: 185 },
-    { sku: 'SSD-1T-G5-7GBs',  description: '1TB NVMe Gen5 SSD',              unitPrice: 110 },
-    { sku: 'RAM-64G-D5-6400', description: '64GB DDR5-6400 ECC SO-DIMM',      unitPrice: 210 },
+    { sku: 'SSD-NVME5-2TB-7GBs',  description: '2TB NVMe Gen5 SSD (M.2 2280, 7GB/s)',  unitPrice: 185 },
+    { sku: 'SSD-NVME5-1TB-7GBs',  description: '1TB NVMe Gen5 SSD (M.2 2280, 7GB/s)',  unitPrice: 110 },
+    { sku: 'RAM-DDR5SO-64G-6400', description: '64GB DDR5-6400 ECC SO-DIMM (262-pin)',  unitPrice: 210 },
   ],
   'NVIDIA': [
-    { sku: 'GPU-5080M-16G-150W', description: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: 890 },
-    { sku: 'GPU-5070M-12G-120W', description: 'NVIDIA RTX 5070 Mobile (12GB)', unitPrice: 620 },
+    { sku: 'GPU-RTX5080M-16G-150W', description: 'RTX 5080 Mobile 16GB GDDR7 (150W TDP)', unitPrice: 890 },
+    { sku: 'GPU-RTX5070M-12G-120W', description: 'RTX 5070 Mobile 12GB GDDR7 (120W TDP)', unitPrice: 620 },
   ],
   'SK Hynix': [
-    { sku: 'RAM-32G-D5-5600', description: '32GB DDR5-5600 SO-DIMM',          unitPrice: 95 },
-    { sku: 'RAM-16G-D5-5600', description: '16GB DDR5-5600 SO-DIMM',          unitPrice: 48 },
-    { sku: 'RAM-8G-D5-5600',  description: '8GB DDR5-5600 SO-DIMM',           unitPrice: 25 },
+    { sku: 'RAM-DDR5SO-32G-5600', description: '32GB DDR5-5600 SO-DIMM (262-pin)',       unitPrice: 95 },
+    { sku: 'RAM-DDR5SO-16G-5600', description: '16GB DDR5-5600 SO-DIMM (262-pin)',       unitPrice: 48 },
+    { sku: 'RAM-DDR5SO-8G-5600',  description: '8GB DDR5-5600 SO-DIMM (262-pin)',        unitPrice: 25 },
   ],
   'LG Display': [
-    { sku: 'DSP-OLED16-4K-8W',  description: '16" 4K ProArt OLED Panel',     unitPrice: 420 },
-    { sku: 'DSP-OLED15-4K-7W',  description: '15" 4K OLED Panel',            unitPrice: 380 },
-    { sku: 'DSP-IPS13-FHD-4W',  description: '13" FHD IPS Panel',            unitPrice: 120 },
+    { sku: 'DSP-OLED4K-16IN-120Hz', description: '16" 4K OLED 120Hz (eDP 1.4, HDR)',   unitPrice: 420 },
+    { sku: 'DSP-OLED4K-15IN-120Hz', description: '15" 4K OLED 120Hz (eDP 1.4, HDR)',   unitPrice: 380 },
+    { sku: 'DSP-IPSFHD-13IN-60Hz',  description: '13" FHD IPS 60Hz (eDP 1.3)',         unitPrice: 120 },
   ],
   'Murata Manufacturing': [
-    { sku: 'MOD-WIFI7-AX-2W',   description: 'WiFi 7 AX Module',             unitPrice: 35 },
-    { sku: 'MOD-BT53-LE-0.5W',  description: 'Bluetooth 5.3 LE Module',      unitPrice: 12 },
+    { sku: 'MOD-WIFI7AX-6GHz-2W',    description: 'WiFi 7 AX 6GHz Module (M.2, 2W)',   unitPrice: 35 },
+    { sku: 'MOD-BT53LE-2.4GHz-0.5W', description: 'Bluetooth 5.3 LE Module (2.4GHz)',  unitPrice: 12 },
   ],
   'Texas Instruments': [
-    { sku: 'PSU-GaN-240W-95E',  description: '240W GaN Power Supply Unit',   unitPrice: 75 },
-    { sku: 'IC-BUCK-5A-3.3V',   description: '5A Buck Converter IC',         unitPrice: 4  },
+    { sku: 'PSU-GaN-240W-95E',  description: '240W GaN PSU 95% Eff. (USB-C PD 3.1)',   unitPrice: 75 },
+    { sku: 'IC-BUCK-5A-3.3V',   description: '5A Sync Buck Converter (3.3V out)',       unitPrice: 4  },
   ],
   'Foxconn Technology': [
-    { sku: 'MB-ZX1-Ti-ODM',    description: 'Zeus X1 Titanium Mainboard',    unitPrice: 650 },
-    { sku: 'MB-AS1-Slim-ODM',  description: 'Aero S Mainboard',              unitPrice: 290 },
+    { sku: 'MB-EATX-ZX1Ti-DDR5',  description: 'Zeus X1 Titanium Mainboard (E-ATX)',   unitPrice: 650 },
+    { sku: 'MB-MATX-AeroS-DDR5',  description: 'Aero S Mainboard (M-ATX, DDR5)',       unitPrice: 290 },
   ],
 }
 

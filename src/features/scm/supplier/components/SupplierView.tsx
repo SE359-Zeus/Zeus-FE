@@ -14,7 +14,6 @@ interface SkuMapping {
   sku: string
   name: string
   unitPrice: string
-  leadTime: number
 }
 
 interface Supplier {
@@ -22,69 +21,68 @@ interface Supplier {
   name: string
   contact: string
   tier: SupplierTier
-  leadTime: number
   skuMappings: SkuMapping[]
 }
 
 const mockSuppliers: Supplier[] = [
   {
-    id: 'INTL-CPU-US', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred', leadTime: 14,
+    id: 'INTEL-CPU-US', name: 'Intel Corporation', contact: 'sales@intel.com', tier: 'Preferred',
     skuMappings: [
-      { sku: 'CPU-XM1-14C-55W', name: 'Zeus SOC XM100 Pro (14-Core)', unitPrice: '$580.00', leadTime: 14 },
-      { sku: 'CPU-XM1-24C-65W', name: 'Zeus SOC XM100 Ultra (24-Core)', unitPrice: '$920.00', leadTime: 18 },
-      { sku: 'CPU-XM1-8C-28W',  name: 'Zeus SOC XM100 LT (8-Core)', unitPrice: '$340.00', leadTime: 12 },
+      { sku: 'CPU-XM100PRO-14C-55W',  name: 'Zeus SOC XM100 Pro (14-Core)',   unitPrice: '$580.00' },
+      { sku: 'CPU-XM100ULT-24C-65W', name: 'Zeus SOC XM100 Ultra (24-Core)', unitPrice: '$920.00' },
+      { sku: 'CPU-XM100LT-8C-28W',   name: 'Zeus SOC XM100 LT (8-Core)',     unitPrice: '$340.00' },
     ],
   },
   {
-    id: 'SMSG-MEM-KR', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred', leadTime: 21,
+    id: 'SMSNG-MEM-KR', name: 'Samsung Electronics', contact: 'logistics@samsung.com', tier: 'Preferred',
     skuMappings: [
-      { sku: 'SSD-2T-G5-7GBs',  name: '2TB NVMe Gen5 Enterprise SSD', unitPrice: '$185.00', leadTime: 21 },
-      { sku: 'SSD-1T-G5-7GBs',  name: '1TB NVMe Gen5 SSD', unitPrice: '$110.00', leadTime: 18 },
-      { sku: 'RAM-64G-D5-6400', name: '64GB DDR5-6400 ECC SO-DIMM', unitPrice: '$210.00', leadTime: 24 },
+      { sku: 'SSD-NVME5-2TB-7GBs',  name: '2TB NVMe Gen5 Enterprise SSD',   unitPrice: '$185.00' },
+      { sku: 'SSD-NVME5-1TB-7GBs',  name: '1TB NVMe Gen5 SSD',              unitPrice: '$110.00' },
+      { sku: 'RAM-DDR5SO-64G-6400', name: '64GB DDR5-6400 ECC SO-DIMM',      unitPrice: '$210.00' },
     ],
   },
   {
-    id: 'NVDA-GPU-US', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred', leadTime: 30,
+    id: 'NVDIA-GPU-US', name: 'NVIDIA', contact: 'contact@nvidia.com', tier: 'Preferred',
     skuMappings: [
-      { sku: 'GPU-5080M-16G-150W', name: 'NVIDIA RTX 5080 Mobile (16GB)', unitPrice: '$890.00', leadTime: 30 },
-      { sku: 'GPU-5070M-12G-120W', name: 'NVIDIA RTX 5070 Mobile (12GB)', unitPrice: '$620.00', leadTime: 28 },
+      { sku: 'GPU-RTX5080M-16G-150W', name: 'NVIDIA RTX 5080 Mobile (16GB GDDR7)', unitPrice: '$890.00' },
+      { sku: 'GPU-RTX5070M-12G-120W', name: 'NVIDIA RTX 5070 Mobile (12GB GDDR7)', unitPrice: '$620.00' },
     ],
   },
   {
-    id: 'SKHX-RAM-KR', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified', leadTime: 7,
+    id: 'SKHYX-RAM-KR', name: 'SK Hynix', contact: 'info@skhynix.com', tier: 'Qualified',
     skuMappings: [
-      { sku: 'RAM-32G-D5-5600', name: '32GB DDR5-5600 SO-DIMM', unitPrice: '$95.00', leadTime: 7 },
-      { sku: 'RAM-16G-D5-5600', name: '16GB DDR5-5600 SO-DIMM', unitPrice: '$48.00', leadTime: 7 },
-      { sku: 'RAM-8G-D5-5600',  name: '8GB DDR5-5600 SO-DIMM', unitPrice: '$25.00', leadTime: 5 },
+      { sku: 'RAM-DDR5SO-32G-5600', name: '32GB DDR5-5600 SO-DIMM', unitPrice: '$95.00' },
+      { sku: 'RAM-DDR5SO-16G-5600', name: '16GB DDR5-5600 SO-DIMM', unitPrice: '$48.00' },
+      { sku: 'RAM-DDR5SO-8G-5600',  name: '8GB DDR5-5600 SO-DIMM',  unitPrice: '$25.00' },
     ],
   },
   {
-    id: 'LGD-DSP-KR', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified', leadTime: 45,
+    id: 'LGDSP-DSP-KR', name: 'LG Display', contact: 'b2b@lg.com', tier: 'Qualified',
     skuMappings: [
-      { sku: 'DSP-OLED16-4K-8W',  name: '16" 4K ProArt OLED Panel', unitPrice: '$420.00', leadTime: 45 },
-      { sku: 'DSP-OLED15-4K-7W',  name: '15" 4K OLED Panel', unitPrice: '$380.00', leadTime: 40 },
-      { sku: 'DSP-IPS13-FHD-4W',  name: '13" FHD IPS Panel', unitPrice: '$120.00', leadTime: 30 },
+      { sku: 'DSP-OLED4K-16IN-120Hz', name: '16" 4K ProArt OLED 120Hz Panel', unitPrice: '$420.00' },
+      { sku: 'DSP-OLED4K-15IN-120Hz', name: '15" 4K OLED 120Hz Panel',        unitPrice: '$380.00' },
+      { sku: 'DSP-IPSFHD-13IN-60Hz',  name: '13" FHD IPS 60Hz Panel',         unitPrice: '$120.00' },
     ],
   },
   {
-    id: 'MRAT-MOD-JP', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified', leadTime: 10,
+    id: 'MURAT-MOD-JP', name: 'Murata Manufacturing', contact: 'components@murata.com', tier: 'Qualified',
     skuMappings: [
-      { sku: 'MOD-WIFI7-AX-2W',  name: 'WiFi 7 AX Module', unitPrice: '$35.00', leadTime: 10 },
-      { sku: 'MOD-BT53-LE-0.5W', name: 'Bluetooth 5.3 LE Module', unitPrice: '$12.00', leadTime: 8 },
+      { sku: 'MOD-WIFI7AX-6GHz-2W',    name: 'WiFi 7 AX 6GHz Module (M.2)', unitPrice: '$35.00' },
+      { sku: 'MOD-BT53LE-2.4GHz-0.5W', name: 'Bluetooth 5.3 LE Module',      unitPrice: '$12.00' },
     ],
   },
   {
-    id: 'TI-PWR-US', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred', leadTime: 12,
+    id: 'TEXAS-PWR-US', name: 'Texas Instruments', contact: 'sales@ti.com', tier: 'Preferred',
     skuMappings: [
-      { sku: 'PSU-GaN-240W-95E', name: '240W GaN Power Supply Unit', unitPrice: '$75.00', leadTime: 12 },
-      { sku: 'IC-BUCK-5A-3.3V',  name: '5A Buck Converter IC', unitPrice: '$4.00', leadTime: 7 },
+      { sku: 'PSU-GaN-240W-95E', name: '240W GaN PSU 95% Eff. (USB-C)', unitPrice: '$75.00' },
+      { sku: 'IC-BUCK-5A-3.3V',  name: '5A Synchronous Buck Converter',  unitPrice: '$4.00'  },
     ],
   },
   {
-    id: 'FOXC-MB-TW', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review', leadTime: 35,
+    id: 'FOXCN-MB-TW', name: 'Foxconn Technology', contact: 'procurement@foxconn.com', tier: 'Under Review',
     skuMappings: [
-      { sku: 'MB-ZX1-Ti-ODM',   name: 'Zeus X1 Titanium Mainboard', unitPrice: '$650.00', leadTime: 35 },
-      { sku: 'MB-AS1-Slim-ODM', name: 'Aero S Mainboard', unitPrice: '$290.00', leadTime: 30 },
+      { sku: 'MB-EATX-ZX1Ti-DDR5', name: 'Zeus X1 Titanium Mainboard (E-ATX)', unitPrice: '$650.00' },
+      { sku: 'MB-MATX-AeroS-DDR5', name: 'Aero S Mainboard (M-ATX)',            unitPrice: '$290.00' },
     ],
   },
 ]
@@ -125,14 +123,14 @@ export function SupplierView() {
 
   // Add Supplier modal
   const [showAddSupplier, setShowAddSupplier] = useState(false)
-  const [form, setForm] = useState({ name: '', contact: '', tier: 'Qualified' as SupplierTier, leadTime: '' })
+  const [form, setForm] = useState({ name: '', contact: '', tier: 'Qualified' as SupplierTier })
 
   const handleSaveSupplier = () => {
     if (!form.name.trim()) { toast.error('Supplier name is required'); return }
     if (!form.contact.trim()) { toast.error('Contact email is required'); return }
     toast.success('Supplier Added', { description: `"${form.name}" has been registered` })
     setShowAddSupplier(false)
-    setForm({ name: '', contact: '', tier: 'Qualified', leadTime: '' })
+    setForm({ name: '', contact: '', tier: 'Qualified' })
   }
 
   const filtered = mockSuppliers.filter((v) => {
@@ -228,12 +226,12 @@ export function SupplierView() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10">
               <tr>
-                {['#', 'Supplier ID', 'Name', 'Contact', 'Tier', 'Lead Time', 'Actions'].map((col) => (
+                {['#', 'Supplier ID', 'Name', 'Contact', 'Tier', 'Actions'].map((col) => (
                   <th
                     key={col}
                     className={`py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap ${
                       col === '#' ? 'w-10 text-center' :
-                      ['Lead Time', 'Actions'].includes(col) ? 'text-right' : ''
+                      col === 'Actions' ? 'text-right' : ''
                     }`}
                   >
                     {col}
@@ -259,7 +257,7 @@ export function SupplierView() {
                           {tierLabel(supplier.tier)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{supplier.leadTime} days</td>
+
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -290,18 +288,16 @@ export function SupplierView() {
                                 SKU Mapping — {supplier.name}
                               </h4>
                             </div>
-                            <div className="grid grid-cols-4 gap-4 text-[13px]">
+                            <div className="grid grid-cols-3 gap-4 text-[13px]">
                               <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">SKU</div>
                               <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Component Name</div>
                               <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Unit Price</div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Lead Time</div>
 
                               {supplier.skuMappings.map((sku) => (
                                 <React.Fragment key={sku.sku}>
                                   <div className="col-span-1 font-mono text-white border-t border-mrp-border pt-2">{sku.sku}</div>
                                   <div className="text-mrp-text-secondary border-t border-mrp-border pt-2">{sku.name}</div>
                                   <div className="text-right font-mono text-white border-t border-mrp-border pt-2">{sku.unitPrice}</div>
-                                  <div className="text-right font-mono text-mrp-text-muted border-t border-mrp-border pt-2">{sku.leadTime} days</div>
                                 </React.Fragment>
                               ))}
                             </div>
@@ -362,29 +358,17 @@ export function SupplierView() {
                   className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Tier</label>
-                  <select
-                    value={form.tier}
-                    onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value as SupplierTier }))}
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                  >
-                    <option>Preferred</option>
-                    <option>Qualified</option>
-                    <option>Under Review</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Lead Time (days)</label>
-                  <input
-                    value={form.leadTime}
-                    onChange={(e) => setForm((f) => ({ ...f, leadTime: e.target.value }))}
-                    placeholder="e.g. 14"
-                    type="number" min={1}
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
-                  />
-                </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Tier</label>
+                <select
+                  value={form.tier}
+                  onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value as SupplierTier }))}
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                >
+                  <option>Preferred</option>
+                  <option>Qualified</option>
+                  <option>Under Review</option>
+                </select>
               </div>
             </div>
 
