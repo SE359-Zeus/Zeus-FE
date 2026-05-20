@@ -15,7 +15,12 @@ import {
   ChevronLeft,
   ChevronDown,
   LogOut,
-  AlertTriangle // Thêm icon cho Shortage
+  AlertTriangle,
+  Truck,
+  ClipboardList,
+  PackageCheck,
+  Ship,
+  Boxes
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -30,15 +35,17 @@ const navSections = [
       { href: '/mrp/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/mrp/bom-catalog', label: 'Product Catalog', icon: Package },
       { href: '/mrp/inventory-ledger', label: 'Inventory Ledger', icon: FileText },
-      { href: '/mrp/demand-pos', label: 'Demand & POs', icon: ShoppingCart },
+      { href: '/mrp/demand-pos', label: 'Demand', icon: ShoppingCart },
     ]
   },
   {
     title: 'SCM',
     items: [
-      { href: '/scm/suppliers', label: 'Suppliers', icon: Factory },
-      { href: '/scm/shipments', label: 'Shipments', icon: Package },
-      { href: '/scm/shortages', label: 'Shortages', icon: AlertTriangle },
+      { href: '/scm/suppliers', label: 'Supplier', icon: Truck },
+      { href: '/scm/po-orchestration', label: 'Purchase Order', icon: ClipboardList },
+      { href: '/scm/goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
+      { href: '/scm/shipments', label: 'Shipment', icon: Ship },
+      { href: '/scm/inventory', label: 'Inventory', icon: Boxes },
     ]
   },
   {
