@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
@@ -132,11 +132,11 @@ export function GoodsReceiptView() {
         </div>
         <div className="flex gap-3">
           <button onClick={() => toast.info('Refreshed')}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm">
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer">
             <RefreshCw size={16} /> Refresh
           </button>
           <button onClick={() => toast.success('Report exported')}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm">
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer">
             <Download size={16} /> Export Report
           </button>
         </div>
@@ -166,7 +166,7 @@ export function GoodsReceiptView() {
         <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex items-center gap-2">
           {FILTER_TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors cursor-pointer ${
                 filter === key ? 'bg-mrp-primary text-white' : 'bg-mrp-app border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border'
               }`}>{label}</button>
           ))}
@@ -228,8 +228,8 @@ export function GoodsReceiptView() {
                           }}
                           className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors whitespace-nowrap ${
                             action.disabled ? 'bg-mrp-panel text-mrp-text-muted border border-mrp-border cursor-not-allowed opacity-50'
-                            : action.primary ? 'bg-mrp-primary hover:bg-mrp-primary-hover text-white'
-                            : 'border border-mrp-border text-white hover:bg-mrp-border'
+                            : action.primary ? 'bg-mrp-primary hover:bg-mrp-primary-hover text-white cursor-pointer'
+                            : 'border border-mrp-border text-white hover:bg-mrp-border cursor-pointer'
                           }`}>
                           {action.label}
                         </button>
@@ -330,7 +330,7 @@ export function GoodsReceiptView() {
                                       className="w-full bg-mrp-panel border border-mrp-border rounded-sm p-2 text-[13px] text-white focus:border-mrp-primary focus:outline-none placeholder:text-mrp-text-muted" />
                                   </div>
                                   <button onClick={handleComplete}
-                                    className="w-full bg-mrp-primary hover:bg-mrp-primary-hover text-white py-2.5 font-bold rounded-sm flex items-center justify-center gap-2 transition-colors mt-4 text-[13px]">
+                                    className="w-full bg-mrp-primary hover:bg-mrp-primary-hover text-white py-2.5 font-bold rounded-sm flex items-center justify-center gap-2 transition-colors mt-4 text-[13px] cursor-pointer">
                                     Complete Receipt <ChevronRight size={16} />
                                   </button>
                                   <p className="text-[10px] text-mrp-text-muted text-center">

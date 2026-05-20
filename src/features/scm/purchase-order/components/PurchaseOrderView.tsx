@@ -182,7 +182,7 @@ const kpiCards = [
 export function PurchaseOrderView() {
   const [filter, setFilter] = useState<FilterType>('ALL')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['PO-2024-105']))
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set(['PO-2024-108', 'PO-2024-107', 'PO-2024-106']))
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 
   const filtered = filter === 'ALL' ? mockPOs : mockPOs.filter((po) => po.status === filter)
 
@@ -196,7 +196,7 @@ export function PurchaseOrderView() {
     setSelectedRows(checked ? new Set(filtered.map((p) => p.id)) : new Set())
   }
 
-  const draftSelected = filtered.filter((p) => selectedRows.has(p.id) && p.status === 'Draft')
+  const draftSelected = mockPOs.filter((p) => selectedRows.has(p.id) && p.status === 'Draft')
 
   // Create PO modal
   const [showCreatePO, setShowCreatePO] = useState(false)
@@ -256,13 +256,13 @@ export function PurchaseOrderView() {
         <div className="flex gap-3">
           <button
             onClick={() => toast.success('Report Exported', { description: 'PO report downloaded' })}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm"
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer"
           >
             <Download size={16} /> Export Report
           </button>
           <button
             onClick={() => setShowCreatePO(true)}
-            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
+            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm cursor-pointer"
           >
             <Plus size={16} /> Create PO
           </button>
@@ -289,17 +289,17 @@ export function PurchaseOrderView() {
           <div className="flex items-center gap-2">
             {FILTER_TABS.map(({ key, label }) => (
               <button key={key} onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors cursor-pointer ${
                   filter === key ? 'bg-mrp-primary text-white' : 'bg-mrp-app border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border'
                 }`}
               >{label}</button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => toast.success('Filters applied')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors">
+            <button onClick={() => toast.success('Filters applied')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Filter size={16} />
             </button>
-            <button onClick={() => toast.success('CSV Exported')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors">
+            <button onClick={() => toast.success('CSV Exported')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Download size={16} />
             </button>
           </div>
@@ -314,7 +314,7 @@ export function PurchaseOrderView() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setSelectedRows(new Set())}
-                className="px-3 py-1.5 border border-mrp-border text-white text-[12px] font-medium rounded-sm hover:bg-mrp-border transition-colors">
+                className="px-3 py-1.5 border border-mrp-border text-white text-[12px] font-medium rounded-sm hover:bg-mrp-border transition-colors cursor-pointer">
                 Clear Selection
               </button>
               {draftSelected.length > 0 && (
@@ -322,7 +322,7 @@ export function PurchaseOrderView() {
                   toast.success(`${draftSelected.length} POs Approved`, { description: 'Purchase orders sent to vendors' })
                   setSelectedRows(new Set())
                 }}
-                  className="px-3 py-1.5 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[12px] font-bold rounded-sm transition-colors">
+                  className="px-3 py-1.5 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[12px] font-bold rounded-sm transition-colors cursor-pointer">
                   Approve Selected ({draftSelected.length})
                 </button>
               )}
@@ -376,7 +376,7 @@ export function PurchaseOrderView() {
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{po.expectedDelivery}</td>
                       <td className="py-3 px-4 text-right">
                         <button onClick={() => toggleRow(po.id)}
-                          className="p-1 text-mrp-text-muted hover:text-white transition-colors">
+                          className="p-1 text-mrp-text-muted hover:text-white transition-colors cursor-pointer">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
                       </td>
@@ -451,7 +451,7 @@ export function PurchaseOrderView() {
                               <div>
                                 {actionLabel ? (
                                   <button onClick={() => toast.success('Status Updated', { description: `${po.id} transitioned` })}
-                                    className="px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2">
+                                    className="px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2 cursor-pointer">
                                     {po.status === 'Approved' && <Truck size={14} />}
                                     {actionLabel}
                                   </button>
@@ -564,7 +564,7 @@ export function PurchaseOrderView() {
                   <button
                     onClick={addFormItem}
                     disabled={!poForm.supplier}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border border-mrp-primary text-mrp-primary hover:bg-mrp-primary hover:text-white rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border border-mrp-primary text-mrp-primary hover:bg-mrp-primary hover:text-white rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Plus size={12} /> Add SKU
                   </button>
@@ -632,7 +632,7 @@ export function PurchaseOrderView() {
                                 {fmt(item.qty * item.unitPrice)}
                               </td>
                               <td className="py-2 px-2 text-center">
-                                <button onClick={() => removeFormItem(idx)} className="text-mrp-text-muted hover:text-red-400 transition-colors">
+                                <button onClick={() => removeFormItem(idx)} className="text-mrp-text-muted hover:text-red-400 transition-colors cursor-pointer">
                                   <Trash2 size={14} />
                                 </button>
                               </td>
