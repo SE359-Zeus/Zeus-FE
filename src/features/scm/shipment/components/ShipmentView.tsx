@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react'
 import {
@@ -162,13 +162,13 @@ export function ShipmentView() {
         <div className="flex gap-3">
           <button
             onClick={() => toast.success('Report Exported', { description: 'Shipment report downloaded' })}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm"
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer"
           >
             <Download size={16} /> Export Report
           </button>
           <button
             onClick={() => setShowCreateShipment(true)}
-            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
+            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm cursor-pointer"
           >
             <Plus size={16} /> Create Shipment
           </button>
@@ -195,17 +195,17 @@ export function ShipmentView() {
           <div className="flex items-center gap-2">
             {FILTER_TABS.map(({ key, label }) => (
               <button key={key} onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors cursor-pointer ${
                   filter === key ? 'bg-mrp-primary text-white' : 'bg-mrp-app border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border'
                 }`}
               >{label}</button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => toast.success('Filters applied')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors">
+            <button onClick={() => toast.success('Filters applied')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Filter size={16} />
             </button>
-            <button onClick={() => toast.success('CSV Exported')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors">
+            <button onClick={() => toast.success('CSV Exported')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Download size={16} />
             </button>
           </div>
@@ -243,7 +243,7 @@ export function ShipmentView() {
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{shp.shipDate}</td>
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{shp.eta}</td>
                       <td className="py-3 px-4 text-right">
-                        <button onClick={() => toggleRow(shp.id)} className="p-1 text-mrp-text-muted hover:text-white transition-colors">
+                        <button onClick={() => toggleRow(shp.id)} className="p-1 text-mrp-text-muted hover:text-white transition-colors cursor-pointer">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
                       </td>
@@ -328,7 +328,7 @@ export function ShipmentView() {
                                 {shp.status !== 'Delivered' && shp.status !== 'Delayed' && (
                                   <button
                                     onClick={() => toast.success('Status Updated', { description: `${shp.id} marked as received` })}
-                                    className="w-full mt-3 px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2"
+                                    className="w-full mt-3 px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
                                   >
                                     <Package size={14} /> Mark as Received
                                   </button>

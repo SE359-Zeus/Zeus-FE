@@ -174,7 +174,7 @@ export function SupplierView() {
           </div>
           <button
           onClick={() => setShowAddSupplier(true)}
-            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
+            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm cursor-pointer"
           >
             <Plus size={16} />
             Add Supplier
@@ -203,7 +203,7 @@ export function SupplierView() {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-sm text-[12px] font-medium transition-colors cursor-pointer ${
                   filter === key
                     ? 'bg-mrp-primary text-white'
                     : 'bg-mrp-app border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border'
@@ -215,7 +215,7 @@ export function SupplierView() {
           </div>
           <button
             onClick={() => toast.success('Report Exported', { description: 'Supplier performance report downloaded' })}
-            className="flex items-center gap-2 text-mrp-text-muted hover:text-white transition-colors text-[13px]"
+            className="flex items-center gap-2 text-mrp-text-muted hover:text-white transition-colors text-[13px] cursor-pointer"
           >
             <Download size={14} /> Export
           </button>
@@ -262,14 +262,14 @@ export function SupplierView() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => toggleRow(supplier.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1 border border-mrp-border text-white bg-mrp-panel rounded-sm text-[13px] font-medium transition-colors hover:bg-mrp-border"
+                            className="inline-flex items-center gap-1 px-3 py-1 border border-mrp-border text-white bg-mrp-panel rounded-sm text-[13px] font-medium transition-colors hover:bg-mrp-border cursor-pointer"
                           >
                             {isExpanded ? 'Hide SKUs' : 'View SKUs'}
                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
                           <button
                             onClick={() => toast.success('Edit Supplier', { description: `Editing ${supplier.name}` })}
-                            className="p-1 border border-mrp-border text-mrp-text-muted bg-transparent rounded-sm transition-colors hover:bg-mrp-border hover:text-white"
+                            className="p-1 border border-mrp-border text-mrp-text-muted bg-transparent rounded-sm transition-colors hover:bg-mrp-border hover:text-white cursor-pointer"
                           >
                             <Pencil size={14} />
                           </button>
