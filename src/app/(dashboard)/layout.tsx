@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
+import { AuthGuard } from '@/features/auth/components/AuthGuard'
 
 export default function DashboardLayout({
   children,
@@ -12,20 +13,27 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-mrp-app">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      <div
-        className="flex-1 flex flex-col min-w-[1024px] bg-mrp-app h-screen overflow-hidden transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? '64px' : '260px' }}
-      >
-        <Topbar />
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+    /*
+     * AuthGuard checks isAuthenticated after bootstrapping resolves.
+     * Unauthenticated users are redirected to /login before seeing any
+     * dashboard content.
+     */
+    <AuthGuard>
+      <div className="flex h-screen overflow-hidden bg-mrp-app">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+        <div
+          className="flex-1 flex flex-col min-w-[1024px] bg-mrp-app h-screen overflow-hidden transition-all duration-300"
+          style={{ marginLeft: sidebarCollapsed ? '64px' : '260px' }}
+        >
+          <Topbar />
+          <main className="flex-1 overflow-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }
