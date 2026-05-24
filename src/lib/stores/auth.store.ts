@@ -56,7 +56,13 @@ export const useAuthStore = create<AuthState & AuthActions>((set) => ({
   // --- initial state -------------------------------------------------------
   accessToken: null,
   currentUser: null,
-  isBootstrapping: true,
+  /**
+   * Start as FALSE so SSR and the initial client render produce identical HTML.
+   * AuthProvider's useEffect sets this to true immediately on mount (browser only),
+   * then sets it back to false once initialLoad() resolves.
+   * This prevents the React hydration mismatch that caused HTTP 500.
+   */
+  isBootstrapping: false,
   isReady: false,
 
   // --- actions -------------------------------------------------------------

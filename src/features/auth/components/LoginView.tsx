@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Factory, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react'
+import { Factory, Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 
@@ -88,7 +88,7 @@ export function LoginView() {
                   htmlFor="login-email"
                   className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
                 >
-                  Operator Identity
+                  Email
                 </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted">
@@ -112,16 +112,13 @@ export function LoginView() {
 
               {/* Password Field */}
               <div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="mb-2">
                   <label
                     htmlFor="login-password"
                     className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider"
                   >
-                    Access Key
+                    Password
                   </label>
-                  <button type="button" className="text-[10px] text-mrp-primary hover:underline font-bold uppercase tracking-tight">
-                    Reset Key
-                  </button>
                 </div>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted">
@@ -161,10 +158,7 @@ export function LoginView() {
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <>
-                    Initialize Session
-                    <ArrowRight size={14} className="mt-[1px]" />
-                  </>
+                  'LOGIN'
                 )}
               </button>
             </form>

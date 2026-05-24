@@ -1,43 +1,55 @@
 /**
  * @file AuthProvider.tsx
- * @description Global authentication provider.
+ * @description Global authentication bootstrapping provider.
  *
- * Responsibilities:
- *  1. Runs `initialLoad()` exactly ONCE when the app mounts (cold start / F5).
- *  2. Shows a full-screen loading state while bootstrapping is in progress,
- *     preventing any flash of unauthenticated content (FOUC).
- *  3. Wraps the entire application so all children have access to auth state.
+ * ─── Hydration-safe Design ───────────────────────────────────────────────────
  *
- * Placement: Wrap `{children}` inside the root layout.tsx.
+ *  Problem (was causing HTTP 500):
+ *    Zustand's `isBootstrapping` was initialized to `true`.
+ *    During SSR, Next.js renders the component tree and produces HTML.
+ *    On the client, React hydrates by re-rendering the same tree.
+ *    If the initial client render differs from SSR HTML (because useEffect
+ *    immediately sets isBootstrapping = false on mount), React throws a
+ *    hydration error, which Next.js surfaces as HTTP 500.
  *
- * Flow:
- *   Mount → initialLoad() → [isReady = true] → render children
- *                                            ↓
- *                               AuthGuard decides: dashboard or /login
+ *  Fix:
+ *    1. Store initial `isBootstrapping = false` (SSR and first client render agree).
+ *    2. This provider uses `useEffect` to set `isBootstrapping = true` on mount,
+ *       then immediately calls `initialLoad()` which sets it back to `false`
+ *       when done. This sequence is invisible to SSR.
+ *    3. Result: SSR renders children normally (no loading screen flash),
+ *       and the client briefly shows the loading screen only while the
+ *       silent refresh resolves (~100–300ms typical).
+ *
+ * ─── Render Flow ─────────────────────────────────────────────────────────────
+ *
+ *  SSR:     isBootstrapping=false → renders children
+ *  Mount:   useEffect → isBootstrapping=true → shows BootstrappingScreen
+ *  Resolve: isBootstrapping=false, isReady=true → AuthGuard decides
+ *             ├─ has token → dashboard renders
+ *             └─ no token  → redirect to /login
  */
 
 "use client";
 
 import { useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useAuthStore } from "@/lib/stores/auth.store";
 
-// ---------------------------------------------------------------------------
-// Full-screen loading skeleton shown during bootstrapping
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading Screen (shown while silent refresh is in progress)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function BootstrappingScreen() {
   return (
     <div className="min-h-screen w-full bg-mrp-app flex flex-col items-center justify-center gap-4">
       {/* Animated logo mark */}
       <div className="relative flex items-center justify-center">
-        {/* Outer spinning ring */}
         <div className="absolute w-16 h-16 border-2 border-mrp-primary/20 rounded-full animate-ping" />
         <div className="w-12 h-12 border-2 border-t-mrp-primary border-mrp-primary/10 rounded-full animate-spin" />
-        {/* Inner static dot */}
         <div className="absolute w-3 h-3 bg-mrp-primary rounded-full" />
       </div>
 
-      {/* Status text */}
       <div className="flex flex-col items-center gap-1 mt-4">
         <p className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-[0.3em] font-mono">
           Initializing Session
@@ -47,7 +59,6 @@ function BootstrappingScreen() {
         </p>
       </div>
 
-      {/* Animated progress bar */}
       <div className="w-48 h-[2px] bg-mrp-border rounded-full overflow-hidden mt-2">
         <div className="h-full w-1/3 bg-mrp-primary rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]" />
       </div>
@@ -55,27 +66,33 @@ function BootstrappingScreen() {
   );
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 // Provider
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface AuthProviderProps {
   children: React.ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { initialLoad, isBootstrapping } = useAuth();
+  const { initialLoad } = useAuth();
+  const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
 
-  // Run exactly once on mount — never on re-renders
   useEffect(() => {
+    /**
+     * useEffect only runs in the browser — never during SSR.
+     * This guarantees the SSR output and initial client render are identical
+     * (both use isBootstrapping=false from initial store state).
+     *
+     * The sequence here:
+     *  1. initialLoad() internally calls setBootstrapping(true) first
+     *  2. Runs the silent refresh network request
+     *  3. Calls setBootstrapping(false) + setReady(true) in finally block
+     */
     initialLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Block rendering until the bootstrapping check resolves.
-  // This prevents:
-  //   1. Flash of dashboard content before auth check completes
-  //   2. Flash of login page for already-authenticated users
   if (isBootstrapping) {
     return <BootstrappingScreen />;
   }

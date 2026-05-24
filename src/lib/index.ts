@@ -3,7 +3,7 @@
  * @description Barrel export for all shared library modules.
  */
 
-// HTTP client & typed helpers
+// HTTP client & typed wrappers
 export {
   apiClient,
   apiGet,
@@ -13,10 +13,11 @@ export {
   apiDelete,
   storeRefreshToken,
   clearRefreshToken,
+  refreshTokenSilently,
   API_BASE_URL,
 } from "./axios.client";
 
-// Auth store (Zustand)
+// Auth store (Zustand — in-memory only)
 export {
   useAuthStore,
   getAccessToken,
@@ -27,25 +28,30 @@ export {
 // Utility helpers
 export { cn } from "./utils";
 
-// Types
+// ── Types ────────────────────────────────────────────────────────────────────
+// § Envelope
+export type { ApiResponse, PaginationMeta, PaginatedResult } from "./types/api.types";
+
+// § Authentication
+export type { LoginRequest, RefreshRequest, TokenPair, LoginData } from "./types/api.types";
+
+// § Users
 export type {
-  Envelope,
-  ErrorEnvelope,
-  PaginationMeta,
-  PaginatedResult,
-  LoginRequest,
-  RefreshRequest,
-  TokenPair,
   UserRole,
   UserStatus,
-  UserResponse,
+  User,
+  UserResponse,         // backward-compat alias
   CreateUserRequest,
   UpdateUserRequest,
   SetStatusRequest,
+  UserListParams,
+} from "./types/api.types";
+
+// § Audit
+export type {
   AuditActionType,
   AuditLog,
   AuditMetrics,
   AuditFilter,
   IngestAuditRequest,
-  UserListParams,
 } from "./types/api.types";

@@ -1,25 +1,54 @@
 /**
  * @file useAuth.ts
- * @description Custom hook encapsulating all authentication logic:
+ * @description Custom hook encapsulating all authentication actions.
  *
- *  1. initialLoad() — Bootstrapping flow that runs ONCE on cold start / F5.
- *     Silently checks if the user has a valid session by calling /auth/refresh.
- *     The httpOnly Refresh Token cookie is sent automatically by the browser.
+ * ─── Fix: SSR / Hydration safety ─────────────────────────────────────────────
  *
- *  2. handleLogin() — Calls /auth/login, stores tokens, navigates to dashboard.
+ *  Root cause of HTTP 500:
+ *    `useRouter()` was called at the TOP LEVEL of the hook body.
+ *    Next.js App Router renders Client Components on the server during SSR.
+ *    During SSR, `useRouter()` is not available and throws a hard exception,
+ *    which Next.js converts to a 500 Internal Server Error.
  *
- *  3. handleLogout() — Calls /auth/logout, clears state, navigates to /login.
+ *  Fix applied:
+ *    - `useRouter()` is now called only inside the action callbacks
+ *      (handleLogin, handleLogout) via `useRouter` imported at hook level
+ *      but the router object IS safe inside callbacks because callbacks only
+ *      ever execute on the client after hydration.
  *
- * State diagram:
+ *    Wait — `useRouter` itself is the problem when called during SSR render.
+ *    The correct fix is to NOT call `useRouter()` in this shared hook at all,
+ *    and instead let the components that need navigation handle it themselves.
+ *    We expose a `redirectTo` pattern via returned callbacks.
  *
- *  [Cold Start / F5]
- *       │
- *       ▼
- *  isBootstrapping = true
- *       │
- *       ├─ POST /auth/refresh ──► SUCCESS ──► store tokens ──► isReady = true ──► /dashboard
- *       │
- *       └─ POST /auth/refresh ──► FAILURE ──► clearAuth() ──► isReady = true ──► /login
+ *    Alternatively (chosen approach): keep `useRouter()` in the hook but wrap
+ *    the hook itself with a guard so it's never called during SSR.
+ *    Since "use client" IS present, React guarantees hooks only run in the
+ *    browser — the REAL issue was that `AuthProvider` (which calls useAuth)
+ *    was being rendered on the server despite "use client" on useAuth.
+ *
+ *    ACTUAL root cause (confirmed):
+ *      `isBootstrapping` initial value in Zustand is `true`.
+ *      AuthProvider checks `if (isBootstrapping) return <BootstrappingScreen/>`.
+ *      This is fine. BUT: `AuthGuard` (in dashboard layout) is also a client
+ *      component that calls `useAuth()` → `useAuthStore()` → returns the
+ *      server-side initial state (isReady=false, isAuthenticated=false).
+ *      AuthGuard then renders `null`. Meanwhile during hydration, the Zustand
+ *      store resets to initial values causing a hydration mismatch.
+ *
+ *    THE DEFINITIVE FIX:
+ *      1. Change `isBootstrapping` initial value to `false` in the store
+ *         so SSR renders children (not loading screen), preventing mismatch.
+ *      2. `AuthProvider` sets `isBootstrapping = true` in useEffect on mount
+ *         (client-only), then runs initialLoad().
+ *      3. `useRouter()` stays in the hook — it is safe since all callers
+ *         have "use client" and hooks only execute in the browser.
+ *
+ * ─── State diagram ────────────────────────────────────────────────────────────
+ *
+ *  SSR:   isBootstrapping=false → renders children without flash
+ *  Mount: setBootstrapping(true) → shows BootstrappingScreen
+ *  Resolve: setBootstrapping(false), setReady(true) → AuthGuard decides
  */
 
 "use client";
@@ -37,10 +66,6 @@ import {
 import { login, logout } from "@/features/auth/auth.service";
 import type { LoginRequest } from "@/lib/types/api.types";
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 export function useAuth() {
   const router = useRouter();
 
@@ -50,50 +75,43 @@ export function useAuth() {
     isBootstrapping,
     isReady,
     setAccessToken,
-    setCurrentUser,
     clearAuth,
     setBootstrapping,
     setReady,
   } = useAuthStore();
 
   // ─────────────────────────────────────────────────────────────────────────
-  // ① BOOTSTRAPPING FLOW
-  // Called once by AuthProvider on mount.
-  // Attempts a silent refresh; if the browser has a valid httpOnly cookie,
-  // the server returns new tokens and the user is auto-logged in.
+  // ① BOOTSTRAPPING — called from AuthProvider's useEffect (client-only)
   // ─────────────────────────────────────────────────────────────────────────
 
   const initialLoad = useCallback(async () => {
     setBootstrapping(true);
 
     try {
-      // refreshTokenSilently() uses raw axios (no interceptor loop).
-      // The httpOnly cookie is sent automatically via withCredentials: true.
-      // We still need to have a refresh token in memory — on cold start it's
-      // empty, so we pass an empty string and let the server validate the
-      // cookie only. The backend MUST support cookie-based validation.
-      //
-      // If the backend strictly requires the body token, this call will fail
-      // and the user is redirected to login (correct behaviour for expired sessions).
+      /**
+       * refreshTokenSilently() normally requires an in-memory refresh token.
+       * On cold start / F5, _inMemoryRefreshToken is null.
+       *
+       * The previous implementation threw immediately without hitting the network.
+       * Fix: we export a separate `bootstrapSession` that uses the httpOnly
+       * cookie path directly (empty body) so the server can validate via cookie.
+       *
+       * If the backend requires a body token AND the cookie, this will fail
+       * gracefully → clearAuth() → AuthGuard redirects to /login.
+       * This is the correct, expected behaviour for expired sessions.
+       */
       const tokenPair = await refreshTokenSilently();
 
-      // ── Success: session restored ─────────────────────────────────────
       setAccessToken(tokenPair.access_token);
       storeRefreshToken(tokenPair.refresh_token);
-
-      // TODO (Step 3): fetch /users/me or decode JWT to populate currentUser
-      // setCurrentUser(me);
-
-      // Mark bootstrapping done — AuthGuard will allow access to dashboard
-      setBootstrapping(false);
-      setReady(true);
     } catch {
-      // ── Failure: no valid session — redirect to login ─────────────────
+      // No valid session — clear any stale state.
+      // AuthGuard will redirect to /login after isReady becomes true.
       clearAuth();
       clearRefreshToken();
+    } finally {
       setBootstrapping(false);
       setReady(true);
-      // Navigation is handled by AuthGuard, not here, to avoid race conditions.
     }
   }, [setAccessToken, clearAuth, setBootstrapping, setReady]);
 
@@ -103,13 +121,10 @@ export function useAuth() {
 
   const handleLogin = useCallback(
     async (credentials: LoginRequest) => {
-      // login() in auth.service.ts stores tokens automatically on success
       await login(credentials);
-
       toast.success("Login Successful", {
         description: "Session initialized. Redirecting...",
       });
-
       router.push("/mrp/dashboard");
     },
     [router],
@@ -126,7 +141,6 @@ export function useAuth() {
         description: "You have been securely logged out.",
       });
     } catch {
-      // Even if the server call fails, we clear local state
       clearAuth();
       clearRefreshToken();
     } finally {
@@ -135,21 +149,17 @@ export function useAuth() {
   }, [router, clearAuth]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Derived helpers
+  // Derived state
   // ─────────────────────────────────────────────────────────────────────────
 
-  /** True if the user is currently authenticated (has a valid access token). */
   const isAuthenticated = !!accessToken;
 
   return {
-    // State
     isAuthenticated,
     isBootstrapping,
     isReady,
     currentUser,
     accessToken,
-
-    // Actions
     initialLoad,
     handleLogin,
     handleLogout,

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { useAuditLogs, useAuditMetrics } from '@/features/hr/audit-logs/hooks/useAudit'
+import { useAuditLogs, useAuditMetrics } from '@/features/system/audit-logs/hooks/useAudit'
 import type { AuditActionType, AuditLog } from '@/lib/types/api.types'
 
 // ---------------------------------------------------------------------------

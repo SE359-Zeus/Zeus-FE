@@ -1,107 +1,103 @@
 /**
  * @file auth.service.ts
- * @description API service layer for the Authentication endpoints.
+ * @description API service for Authentication endpoints.
  *
- * Endpoints covered:
- *  POST /auth/login    — Login with email + password
- *  POST /auth/logout   — Invalidate session (requires Bearer token)
- *  POST /auth/refresh  — Silent token rotation (uses httpOnly cookie)
+ * Endpoints:
+ *  POST /system/auth/login    — Authenticate with email + password
+ *  POST /system/auth/logout   — Invalidate current session
+ *  POST /system/auth/refresh  — Silent token rotation (called by service layer;
+ *                               the Axios interceptor has its own copy for 401 retry)
  *
- * All functions go through the shared apiClient (Step 1) which automatically:
- *   - Attaches Authorization header
- *   - Handles silent refresh on 401
- *   - Sends httpOnly cookie via withCredentials: true
+ * Note on return types:
+ *  Because the Axios success interceptor unwraps the envelope, every apiPost()
+ *  call already returns ApiResponse<T> directly. Services simply return that
+ *  value — no more `.data` unwrapping needed here.
  */
 
-import { apiClient, storeRefreshToken, clearRefreshToken } from "@/lib/axios.client";
+import { apiPost } from "@/lib/axios.client";
+import { storeRefreshToken, clearRefreshToken } from "@/lib/axios.client";
 import { setAccessToken, clearAuth } from "@/lib/stores/auth.store";
 import type {
-  Envelope,
+  ApiResponse,
   LoginRequest,
+  LoginData,
   TokenPair,
 } from "@/lib/types/api.types";
 
-// ---------------------------------------------------------------------------
-// Login
-// ---------------------------------------------------------------------------
-
-export interface LoginResponseData {
-  access_token: string;
-  refresh_token: string;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /system/auth/login
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Authenticates a user with email and password.
- * On success, stores both tokens (access token in Zustand, refresh in memory).
  *
- * @returns The full Envelope containing access_token and refresh_token.
+ * Side effects on success:
+ *  - Stores access_token in Zustand (in-memory only, never localStorage)
+ *  - Stores refresh_token in module-level memory via storeRefreshToken()
+ *
+ * @returns ApiResponse<LoginData> containing { access_token, refresh_token }
  */
 export async function login(
   credentials: LoginRequest,
-): Promise<Envelope<LoginResponseData>> {
-  const res = await apiClient.post<Envelope<LoginResponseData>>(
+): Promise<ApiResponse<LoginData>> {
+  const response = await apiPost<LoginData>(
     "/system/auth/login",
     credentials,
   );
 
-  const data = res.data.data;
-  if (data) {
-    // Store access token in memory (Zustand) — never localStorage
-    setAccessToken(data.access_token);
-    // Store refresh token in module-level memory for silent refresh body
-    storeRefreshToken(data.refresh_token);
+  if (response.data) {
+    setAccessToken(response.data.access_token);
+    storeRefreshToken(response.data.refresh_token);
   }
 
-  return res.data;
+  return response;
 }
 
-// ---------------------------------------------------------------------------
-// Logout
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /system/auth/logout
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Calls POST /auth/logout to invalidate the server-side session.
- * Clears all local auth state regardless of server response.
+ * Terminates the current session server-side and clears all local auth state.
+ *
+ * The server call is best-effort: local state is always cleared even if
+ * the network request fails (e.g. already-expired token).
  */
 export async function logout(): Promise<void> {
   try {
-    // Best-effort: server invalidates the refresh token / cookie
-    await apiClient.post<Envelope<null>>("/system/auth/logout");
+    await apiPost<null>("/system/auth/logout");
   } finally {
-    // Always clear local state, even if the server call fails
+    // Always clear regardless of server response
     clearAuth();
     clearRefreshToken();
   }
 }
 
-// ---------------------------------------------------------------------------
-// Refresh (used by bootstrapping flow)
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /system/auth/refresh
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Calls POST /auth/refresh directly from the service layer.
- * Used during the initial bootstrapping flow (F5 / cold start).
- * The actual implementation of silent refresh inside interceptors uses
- * refreshTokenSilently() from axios.client.ts.
+ * Exchanges a refresh token for a new token pair.
+ * Called by the bootstrapping flow (AuthProvider) on cold start / F5.
  *
- * On success: stores new tokens.
- * On failure: throws so the caller (AuthProvider) can redirect to /login.
+ * The Axios 401 interceptor has its own separate refresh path that uses
+ * raw axios to avoid recursion. This function is for explicit service-layer calls.
+ *
+ * @param currentRefreshToken  The refresh token stored in module memory.
+ * @returns Full TokenPair with new access_token and refresh_token.
  */
 export async function refreshSession(
   currentRefreshToken: string,
-): Promise<TokenPair> {
-  const res = await apiClient.post<Envelope<TokenPair>>("/system/auth/refresh", {
+): Promise<ApiResponse<TokenPair>> {
+  const response = await apiPost<TokenPair>("/system/auth/refresh", {
     refresh_token: currentRefreshToken,
   });
 
-  const tokenPair = res.data.data;
-  if (!tokenPair) {
-    throw new Error("Refresh returned no token data");
+  if (response.data) {
+    setAccessToken(response.data.access_token);
+    storeRefreshToken(response.data.refresh_token);
   }
 
-  // Persist new tokens
-  setAccessToken(tokenPair.access_token);
-  storeRefreshToken(tokenPair.refresh_token);
-
-  return tokenPair;
+  return response;
 }

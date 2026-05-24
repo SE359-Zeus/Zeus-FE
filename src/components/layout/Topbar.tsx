@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { useAuditMetrics } from '@/features/hr/audit-logs/hooks/useAudit';
+import { useAuditMetrics } from '@/features/system/audit-logs/hooks/useAudit';
 
 // ---------------------------------------------------------------------------
 // Notification Bell — wired to real security_events metric

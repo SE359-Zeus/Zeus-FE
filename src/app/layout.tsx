@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Zeus ERP — Enterprise Resource Gateway",
+  title: "Zeus",
   description: "Zeus Orchestrator — Root of Trust module managing authentication, user directory, and audit trail.",
 };
 

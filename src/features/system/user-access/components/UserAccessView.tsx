@@ -5,7 +5,7 @@ import {
   UserPlus, Pencil, Search, ChevronLeft, ChevronRight,
   Loader2, RefreshCw, UserCog, ToggleLeft, ToggleRight, X,
 } from 'lucide-react'
-import { useUsers, useCreateUser, useUpdateUser, useSetUserStatus } from '@/features/hr/user-access/hooks/useUsers'
+import { useUsers, useCreateUser, useUpdateUser, useSetUserStatus } from '@/features/system/user-access/hooks/useUsers'
 import type { UserResponse, CreateUserRequest, UpdateUserRequest, UserRole } from '@/lib/types/api.types'
 
 // ---------------------------------------------------------------------------
