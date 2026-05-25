@@ -58,8 +58,8 @@ const navSections = [
   {
     title: 'HR',
     items: [
-      { href: '/hr/user-access', label: 'User Access', icon: Users },
-      { href: '/hr/audit-logs', label: 'Audit Logs', icon: History },
+      { href: '/system/user-access', label: 'User Access', icon: Users },
+      { href: '/system/audit-logs', label: 'Audit Logs', icon: History },
     ]
   }
 ]
