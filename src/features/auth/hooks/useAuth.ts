@@ -61,7 +61,7 @@ import { useAuthStore } from "@/lib/stores/auth.store";
 import {
   refreshTokenSilently,
 } from "@/lib/axios.client";
-import { login, logout } from "@/features/auth/auth.service";
+import { login, logout, buildUserFromToken } from "@/features/auth/auth.service";
 import type { LoginRequest } from "@/lib/types/api.types";
 
 export function useAuth() {
@@ -86,21 +86,16 @@ export function useAuth() {
     setBootstrapping(true);
 
     try {
-      /**
-       * refreshTokenSilently() normally requires an in-memory refresh token.
-       * On cold start / F5, _inMemoryRefreshToken is null.
-       *
-       * The previous implementation threw immediately without hitting the network.
-       * Fix: we export a separate `bootstrapSession` that uses the httpOnly
-       * cookie path directly (empty body) so the server can validate via cookie.
-       *
-       * If the backend requires a body token AND the cookie, this will fail
-       * gracefully → clearAuth() → AuthGuard redirects to /login.
-       * This is the correct, expected behaviour for expired sessions.
-       */
       const tokenPair = await refreshTokenSilently();
 
       setAccessToken(tokenPair.access_token);
+
+      // Restore currentUser from the new access token so it persists
+      // across page refreshes without a separate /me API call.
+      const user = buildUserFromToken(tokenPair.access_token);
+      if (user) {
+        useAuthStore.getState().setCurrentUser(user);
+      }
     } catch {
       // No valid session — clear any stale state.
       // AuthGuard will redirect to /login after isReady becomes true.

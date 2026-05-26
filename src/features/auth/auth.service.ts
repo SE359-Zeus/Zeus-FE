@@ -15,13 +15,65 @@
  */
 
 import { apiPost } from "@/lib/axios.client";
-import { setAccessToken, clearAuth } from "@/lib/stores/auth.store";
+import { setAccessToken, clearAuth, useAuthStore } from "@/lib/stores/auth.store";
 import type {
   ApiResponse,
   LoginRequest,
   LoginData,
   TokenPair,
+  User,
+  UserRole,
+  UserStatus,
 } from "@/lib/types/api.types";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// JWT Payload Decoder
+// Decodes the payload portion of a JWT token WITHOUT verifying the signature.
+// Signature verification is the responsibility of the backend.
+// This is used only to extract user claims (id, email, role, etc.) so that
+// currentUser can be populated in the Zustand store after login/refresh.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface JwtPayload {
+  user_id: string;
+  email:    string;
+  full_name: string;
+  role:     string;
+  status:   string;
+  exp:      number;
+}
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // Base64url → Base64 → JSON
+    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(padded.padEnd(padded.length + (4 - padded.length % 4) % 4, '='));
+    return JSON.parse(json) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds a minimal User object from JWT claims for use in currentUser store.
+ * Only fields embedded in the JWT are populated; timestamps are left empty.
+ */
+export function buildUserFromToken(token: string): User | null {
+  const payload = decodeJwtPayload(token);
+  if (!payload || !payload.user_id) return null;
+  return {
+    id:            payload.user_id,
+    email:         payload.email         ?? '',
+    full_name:     payload.full_name     ?? '',
+    role:          (payload.role         ?? '')  as UserRole,
+    status:        (payload.status       ?? 'ACTIVE') as UserStatus,
+    created_at:    '',
+    updated_at:    '',
+    last_login_at: null,
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /system/auth/login
@@ -46,10 +98,15 @@ export async function login(
   );
 
   if (response.data) {
-    setAccessToken(response.data.access_token);
-    // Note: refresh_token is NOT in the response body anymore.
-    // The backend sets it as an HttpOnly cookie. The browser stores and
-    // sends it automatically — no manual handling needed here.
+    const token = response.data.access_token;
+    setAccessToken(token);
+
+    // Populate currentUser from the JWT claims so that audit log ingestion
+    // always has a valid user_id without a separate /me API call.
+    const user = buildUserFromToken(token);
+    if (user) {
+      useAuthStore.getState().setCurrentUser(user);
+    }
   }
 
   return response;
