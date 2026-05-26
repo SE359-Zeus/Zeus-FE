@@ -22,6 +22,7 @@ import {
   Ship,
   Boxes
 } from 'lucide-react'
+import { useAuth } from '@/features/auth/hooks/useAuth'
 
 interface SidebarProps {
   collapsed: boolean
@@ -66,6 +67,7 @@ const navSections = [
 
 export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
+  const { handleLogout } = useAuth()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     'MRP': true,
     'SCM': true,
@@ -177,8 +179,8 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       </div>
 
       <div className="border-t border-mrp-border p-3 shrink-0">
-        <Link
-          href="/login"
+        <button
+          onClick={handleLogout}
           className="w-full flex items-center gap-3 text-mrp-text-muted hover:text-white hover:bg-mrp-app p-2 rounded-sm transition-all duration-200 group overflow-hidden"
           title={collapsed ? "Logout" : ""}
         >
@@ -193,7 +195,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
             <span className="text-[13px] font-medium">Logout</span>
             <LogOut size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-mrp-danger" />
           </div>
-        </Link>
+        </button>
       </div>
     </nav>
   )

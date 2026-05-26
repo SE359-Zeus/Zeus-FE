@@ -163,8 +163,24 @@ export interface LoginData {
 /**
  * Possible roles for a system user.
  * Controls permission levels throughout the application.
+ *
+ * Display labels map to snake_case API values:
+ *   "SCM Operator"   → "scm_operator"
+ *   "SCM Worker"     → "scm_worker"
+ *   "Sales Operator" → "sales_operator"
+ *   "Sales Worker"   → "sales_worker"
+ *   "MRP Operator"   → "mrp_operator"
+ *   "MRP Worker"     → "mrp_worker"
+ *   "Admin"          → "admin"
  */
-export type UserRole = "Admin" | "Editor" | "Viewer";
+export type UserRole =
+  | "scm_operator"
+  | "scm_worker"
+  | "sales_operator"
+  | "sales_worker"
+  | "mrp_operator"
+  | "mrp_worker"
+  | "admin";
 
 /**
  * Lifecycle status of a user account.
@@ -210,7 +226,7 @@ export type UserResponse = User;
 export interface CreateUserRequest {
   /** Must be a valid email address. Returns 409 if already taken. */
   email: string;
-  /** Plain-text initial password — minimum 8 characters. */
+  /** Auto-generated initial password — minimum 8 characters. Sent to the user's email by the backend. */
   password: string;
   /** User's display name. */
   full_name: string;

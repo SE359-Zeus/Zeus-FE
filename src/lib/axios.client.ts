@@ -215,15 +215,18 @@ apiClient.interceptors.response.use(
  * Calls POST /system/auth/refresh using a plain axios instance that bypasses
  * all interceptors. This prevents the 401 handler from calling itself.
  *
+ * The browser automatically attaches the HttpOnly `refresh_token` cookie on
+ * this request because `withCredentials: true` is set. No manual cookie
+ * reading or body injection is needed.
+ *
  * Because this bypasses our success interceptor, the response IS a full
  * AxiosResponse. We manually access .data (ApiResponse) and .data.data (TokenPair).
  */
 async function refreshTokenSilently(): Promise<TokenPair> {
   // Raw axios — intentionally bypasses apiClient interceptors.
-  // The refresh token is stored in an httpOnly cookie, which is sent automatically.
   const axiosResponse = await axios.post<ApiResponse<TokenPair>>(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
-    {},
+    {}, // empty body — refresh token is sent automatically via HttpOnly cookie
     {
       withCredentials: true,
       headers: { "Content-Type": "application/json" },

@@ -56,12 +56,12 @@ export function RegisterView() {
     try {
       // NOTE: According to the API schema, POST /users is currently protected by BearerAuth.
       // This call will likely fail with 401 if the user is not authenticated.
-      // We send 'Viewer' as a safe default role.
+      // We send 'scm_worker' as a safe default role.
       const payload: CreateUserRequest = {
         email: formData.email,
         full_name: formData.full_name,
         password: formData.password,
-        role: 'Viewer'
+        role: 'scm_worker'
       }
 
       await createUser(payload)

@@ -32,9 +32,10 @@ import type {
  *
  * Side effects on success:
  *  - Stores access_token in Zustand (in-memory only, never localStorage)
- *  - Stores refresh_token in module-level memory via storeRefreshToken()
+ *  - Backend sets the refresh_token as an HttpOnly cookie automatically
+ *    via the Set-Cookie response header. JavaScript has zero read access to it.
  *
- * @returns ApiResponse<LoginData> containing { access_token, refresh_token }
+ * @returns ApiResponse<LoginData> containing { access_token }
  */
 export async function login(
   credentials: LoginRequest,
@@ -46,6 +47,9 @@ export async function login(
 
   if (response.data) {
     setAccessToken(response.data.access_token);
+    // Note: refresh_token is NOT in the response body anymore.
+    // The backend sets it as an HttpOnly cookie. The browser stores and
+    // sends it automatically — no manual handling needed here.
   }
 
   return response;
@@ -75,13 +79,14 @@ export async function logout(): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Exchanges a refresh token for a new token pair.
+ * Exchanges the HttpOnly refresh_token cookie for a new token pair.
  * Called by the bootstrapping flow (AuthProvider) on cold start / F5.
  *
+ * The browser automatically attaches the HttpOnly cookie — no body token needed.
  * The Axios 401 interceptor has its own separate refresh path that uses
  * raw axios to avoid recursion. This function is for explicit service-layer calls.
  *
- * @returns Full TokenPair with new access_token and refresh_token.
+ * @returns Full TokenPair with new access_token (refresh_token rotated via cookie).
  */
 export async function refreshSession(): Promise<ApiResponse<TokenPair>> {
   const response = await apiPost<TokenPair>("/system/auth/refresh", {});
