@@ -1,19 +1,52 @@
 'use client'
 
-import { useState } from 'react'
-import { Factory, Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Factory, Lock, Mail, User, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useRouter } from 'next/navigation'
+import { createUser } from '@/features/system/user-access/users.service'
+import type { CreateUserRequest } from '@/lib/types/api.types'
 
-export function LoginView() {
-  const { handleLogin, isAuthenticated } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
+function generateStrongPassword(length = 16): string {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const lower = 'abcdefghijklmnopqrstuvwxyz'
+  const numbers = '0123456789'
+  const special = '!@#$%^&*()_+~`|}{[]:;?><,./-='
+  const allChars = upper + lower + numbers + special
+
+  let password = ''
+  // Ensure at least one character from each character set
+  password += upper[Math.floor(Math.random() * upper.length)]
+  password += lower[Math.floor(Math.random() * lower.length)]
+  password += numbers[Math.floor(Math.random() * numbers.length)]
+  password += special[Math.floor(Math.random() * special.length)]
+
+  // Fill the rest of the password
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)]
+  }
+
+  // Shuffle the string
+  return password.split('').sort(() => 0.5 - Math.random()).join('')
+}
+
+export function RegisterView() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: '',
+    full_name: '',
     password: ''
   })
+
+  // Auto-generate password on mount
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      password: generateStrongPassword()
+    }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,27 +54,38 @@ export function LoginView() {
     setIsLoading(true)
 
     try {
-      // Calls POST /auth/login → stores tokens in memory → navigates to dashboard
-      await handleLogin({
+      // NOTE: According to the API schema, POST /users is currently protected by BearerAuth.
+      // This call will likely fail with 401 if the user is not authenticated.
+      // We send 'Viewer' as a safe default role.
+      const payload: CreateUserRequest = {
         email: formData.email,
+        full_name: formData.full_name,
         password: formData.password,
+        role: 'Viewer'
+      }
+
+      await createUser(payload)
+      
+      toast.success('Account Created', { 
+        description: 'Your account has been created successfully. You can now log in.' 
       })
+      router.push('/login')
     } catch (err: unknown) {
-      let message = 'Authentication failed. Please check your credentials.'
+      let message = 'Registration failed. Please try again.'
 
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { status?: number; data?: { message?: string } } }
-        if (axiosErr.response?.status === 401) {
-          message = 'Invalid credentials or account is inactive.'
-        } else if (axiosErr.response?.status === 400) {
-          message = 'Invalid request. Please check your input.'
+        if (axiosErr.response?.status === 409) {
+          message = 'Email already exists.'
+        } else if (axiosErr.response?.status === 401) {
+          message = 'API requires authentication to create users. Public registration is not supported by the backend.'
         } else if (axiosErr.response?.data?.message) {
           message = axiosErr.response.data.message
         }
       }
 
       setError(message)
-      toast.error('Login Failed', { description: message })
+      toast.error('Registration Failed', { description: message })
     } finally {
       setIsLoading(false)
     }
@@ -53,7 +97,7 @@ export function LoginView() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-mrp-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-mrp-primary/5 rounded-full blur-[120px]" />
 
-      {/* Login Card */}
+      {/* Registration Card */}
       <div className="w-full max-w-[420px] z-10">
         <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl overflow-hidden">
           {/* Top Branding Bar */}
@@ -69,7 +113,7 @@ export function LoginView() {
                 Zeus Orchestrator
               </h1>
               <p className="text-[11px] text-mrp-text-muted mt-1 font-medium uppercase tracking-wider">
-                Enterprise Resource Gateway
+                Account Provisioning
               </p>
             </div>
 
@@ -82,10 +126,37 @@ export function LoginView() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name Field */}
+              <div>
+                <label
+                  htmlFor="register-name"
+                  className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
+                >
+                  Full Name
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted">
+                    <User size={16} />
+                  </div>
+                  <input
+                    id="register-name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={(e) => {
+                      setError(null)
+                      setFormData({ ...formData, full_name: e.target.value })
+                    }}
+                    className="w-full bg-mrp-app border border-mrp-border text-white pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors placeholder:text-mrp-text-muted/50"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
               {/* Email Field */}
               <div>
                 <label
-                  htmlFor="login-email"
+                  htmlFor="register-email"
                   className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
                 >
                   Email
@@ -95,10 +166,9 @@ export function LoginView() {
                     <Mail size={16} />
                   </div>
                   <input
-                    id="login-email"
+                    id="register-email"
                     type="email"
                     required
-                    autoComplete="email"
                     value={formData.email}
                     onChange={(e) => {
                       setError(null)
@@ -110,14 +180,14 @@ export function LoginView() {
                 </div>
               </div>
 
-              {/* Password Field */}
+              {/* Auto-generated Password Field */}
               <div>
                 <div className="mb-2">
                   <label
-                    htmlFor="login-password"
+                    htmlFor="register-password"
                     className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider"
                   >
-                    Password
+                    System Generated Password
                   </label>
                 </div>
                 <div className="relative">
@@ -125,61 +195,42 @@ export function LoginView() {
                     <Lock size={16} />
                   </div>
                   <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoComplete="current-password"
+                    id="register-password"
+                    type="text"
+                    readOnly
                     value={formData.password}
-                    onChange={(e) => {
-                      setError(null)
-                      setFormData({ ...formData, password: e.target.value })
-                    }}
-                    className="w-full bg-mrp-app border border-mrp-border text-white pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors placeholder:text-mrp-text-muted/50"
-                    placeholder="••••••••"
+                    className="w-full bg-mrp-app/50 border border-mrp-border text-mrp-text-muted pl-10 pr-10 py-2.5 text-sm rounded-sm cursor-not-allowed select-all"
                   />
-                  <button
-                    type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-mrp-text-muted hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
                 </div>
+                <p className="text-[10px] text-mrp-text-muted mt-2">
+                  This strong password has been automatically generated for you. Please save it securely.
+                </p>
               </div>
 
-              {/* Login Button */}
+              {/* Submit Button */}
               <button
-                id="login-submit"
+                id="register-submit"
                 type="submit"
-                disabled={isLoading || isAuthenticated}
+                disabled={isLoading}
                 className="w-full bg-mrp-primary hover:bg-mrp-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-sm text-[12px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 mt-4 shadow-lg shadow-mrp-primary/10"
               >
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 ) : (
-                  'LOGIN'
+                  'REGISTER'
                 )}
               </button>
 
-              {/* Create Account Link */}
+              {/* Back to Login Link */}
               <div className="text-center mt-4">
                 <a
-                  href="/register"
-                  className="text-[11px] font-bold text-mrp-primary hover:text-mrp-primary-hover uppercase tracking-widest transition-colors inline-block"
+                  href="/login"
+                  className="text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-widest transition-colors inline-block"
                 >
-                  Create Account
+                  Return to Login
                 </a>
               </div>
             </form>
-
-            {/* Security Notice */}
-            <div className="mt-8 pt-6 border-t border-mrp-border flex items-start gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-mrp-warning animate-pulse mt-1 shrink-0" />
-              <p className="text-[10px] text-mrp-text-muted leading-relaxed italic">
-                Authorized access only. All sessions are logged and monitored via the Audit Protocol for security compliance.
-              </p>
-            </div>
           </div>
         </div>
 

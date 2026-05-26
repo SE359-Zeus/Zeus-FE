@@ -35,6 +35,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/lib/stores/auth.store";
+import { refreshTokenSilently } from "@/lib/axios.client";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Loading Screen (shown while silent refresh is in progress)
@@ -77,7 +78,11 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const { initialLoad } = useAuth();
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
+  const isAuthenticated = useAuthStore((s) => s.accessToken !== null);
+  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
 
+  // 1. Initial Load (runs once on mount)
   useEffect(() => {
     /**
      * useEffect only runs in the browser — never during SSR.
@@ -92,6 +97,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initialLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 2. Periodic Token Refresh (every 12 minutes while authenticated)
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (isAuthenticated) {
+      const REFRESH_INTERVAL = 12 * 60 * 1000; // 12 minutes
+      
+      intervalId = setInterval(async () => {
+        try {
+          const tokenPair = await refreshTokenSilently();
+          setAccessToken(tokenPair.access_token);
+        } catch (error) {
+          console.error("[Zeus] Periodic token refresh failed.", error);
+          clearAuth(); // AuthGuard will redirect to login
+        }
+      }, REFRESH_INTERVAL);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAuthenticated, setAccessToken, clearAuth]);
 
   if (isBootstrapping) {
     return <BootstrappingScreen />;

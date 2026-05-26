@@ -15,7 +15,6 @@
  */
 
 import { apiPost } from "@/lib/axios.client";
-import { storeRefreshToken, clearRefreshToken } from "@/lib/axios.client";
 import { setAccessToken, clearAuth } from "@/lib/stores/auth.store";
 import type {
   ApiResponse,
@@ -47,7 +46,6 @@ export async function login(
 
   if (response.data) {
     setAccessToken(response.data.access_token);
-    storeRefreshToken(response.data.refresh_token);
   }
 
   return response;
@@ -69,7 +67,6 @@ export async function logout(): Promise<void> {
   } finally {
     // Always clear regardless of server response
     clearAuth();
-    clearRefreshToken();
   }
 }
 
@@ -84,19 +81,13 @@ export async function logout(): Promise<void> {
  * The Axios 401 interceptor has its own separate refresh path that uses
  * raw axios to avoid recursion. This function is for explicit service-layer calls.
  *
- * @param currentRefreshToken  The refresh token stored in module memory.
  * @returns Full TokenPair with new access_token and refresh_token.
  */
-export async function refreshSession(
-  currentRefreshToken: string,
-): Promise<ApiResponse<TokenPair>> {
-  const response = await apiPost<TokenPair>("/system/auth/refresh", {
-    refresh_token: currentRefreshToken,
-  });
+export async function refreshSession(): Promise<ApiResponse<TokenPair>> {
+  const response = await apiPost<TokenPair>("/system/auth/refresh", {});
 
   if (response.data) {
     setAccessToken(response.data.access_token);
-    storeRefreshToken(response.data.refresh_token);
   }
 
   return response;

@@ -11,8 +11,6 @@ export {
   apiPut,
   apiPatch,
   apiDelete,
-  storeRefreshToken,
-  clearRefreshToken,
   refreshTokenSilently,
   API_BASE_URL,
 } from "./axios.client";

@@ -59,8 +59,6 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/lib/stores/auth.store";
 import {
-  storeRefreshToken,
-  clearRefreshToken,
   refreshTokenSilently,
 } from "@/lib/axios.client";
 import { login, logout } from "@/features/auth/auth.service";
@@ -103,12 +101,10 @@ export function useAuth() {
       const tokenPair = await refreshTokenSilently();
 
       setAccessToken(tokenPair.access_token);
-      storeRefreshToken(tokenPair.refresh_token);
     } catch {
       // No valid session — clear any stale state.
       // AuthGuard will redirect to /login after isReady becomes true.
       clearAuth();
-      clearRefreshToken();
     } finally {
       setBootstrapping(false);
       setReady(true);
@@ -142,7 +138,6 @@ export function useAuth() {
       });
     } catch {
       clearAuth();
-      clearRefreshToken();
     } finally {
       router.push("/login");
     }

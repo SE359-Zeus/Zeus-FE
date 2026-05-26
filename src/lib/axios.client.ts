@@ -187,7 +187,6 @@ apiClient.interceptors.response.use(
       const tokenPair = await refreshTokenSilently();
 
       setAccessToken(tokenPair.access_token);
-      _inMemoryRefreshToken = tokenPair.refresh_token;
 
       drainQueue(tokenPair.access_token);
 
@@ -209,24 +208,6 @@ apiClient.interceptors.response.use(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// In-memory Refresh Token
-// Module-level variable (not localStorage). Resets on page reload.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** @internal Do not import directly — use storeRefreshToken / clearRefreshToken. */
-let _inMemoryRefreshToken: string | null = null;
-
-/** Persists the refresh token to the module-level in-memory slot. */
-export function storeRefreshToken(token: string): void {
-  _inMemoryRefreshToken = token;
-}
-
-/** Erases the in-memory refresh token (call on logout). */
-export function clearRefreshToken(): void {
-  _inMemoryRefreshToken = null;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Silent Refresh — uses RAW axios (no interceptors) to prevent recursion
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -238,14 +219,11 @@ export function clearRefreshToken(): void {
  * AxiosResponse. We manually access .data (ApiResponse) and .data.data (TokenPair).
  */
 async function refreshTokenSilently(): Promise<TokenPair> {
-  if (!_inMemoryRefreshToken) {
-    throw new Error("[Zeus] No refresh token available for silent refresh.");
-  }
-
   // Raw axios — intentionally bypasses apiClient interceptors.
+  // The refresh token is stored in an httpOnly cookie, which is sent automatically.
   const axiosResponse = await axios.post<ApiResponse<TokenPair>>(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
-    { refresh_token: _inMemoryRefreshToken } satisfies { refresh_token: string },
+    {},
     {
       withCredentials: true,
       headers: { "Content-Type": "application/json" },
