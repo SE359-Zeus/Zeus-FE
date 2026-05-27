@@ -226,8 +226,6 @@ export type UserResponse = User;
 export interface CreateUserRequest {
   /** Must be a valid email address. Returns 409 if already taken. */
   email: string;
-  /** Auto-generated initial password — minimum 8 characters. Sent to the user's email by the backend. */
-  password: string;
   /** User's display name. */
   full_name: string;
   /** Initial access control role. */

@@ -1,32 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Factory, Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { Factory, Mail, User, AlertCircle, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '@/features/auth/hooks/useAuth'
-import { useAuthStore } from '@/lib/stores/auth.store'
+import { useRouter } from 'next/navigation'
+import { createUser } from '@/features/system/user-access/users.service'
+import type { CreateUserRequest, UserRole } from '@/lib/types/api.types'
 
-export function LoginView() {
-  const { handleLogin } = useAuth()
+// Role display options
+const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
+  { label: 'SCM Operator',   value: 'scm_operator' },
+  { label: 'SCM Worker',     value: 'scm_worker' },
+  { label: 'Sales Operator', value: 'sales_operator' },
+  { label: 'Sales Worker',   value: 'sales_worker' },
+  { label: 'MRP Operator',   value: 'mrp_operator' },
+  { label: 'MRP Worker',     value: 'mrp_worker' },
+  { label: 'Admin',          value: 'admin' },
+]
+
+export function RegisterView() {
   const router = useRouter()
-  const isReady = useAuthStore((s) => s.isReady)
-  const isAuthenticated = useAuthStore((s) => !!s.accessToken)
-  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    full_name: '',
+    role: 'scm_operator' as UserRole,
   })
-
-  // If the user already has a valid session (bootstrapping succeeded),
-  // redirect them away from the login page automatically.
-  useEffect(() => {
-    if (isReady && isAuthenticated) {
-      router.replace('/mrp/dashboard')
-    }
-  }, [isReady, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,27 +34,34 @@ export function LoginView() {
     setIsLoading(true)
 
     try {
-      // Calls POST /auth/login → stores tokens in memory → navigates to dashboard
-      await handleLogin({
+      const payload: CreateUserRequest = {
         email: formData.email,
-        password: formData.password,
+        full_name: formData.full_name,
+        role: formData.role,
+      }
+
+      await createUser(payload)
+      
+      toast.success('Account Created', { 
+        description: 'Your account has been created successfully. A password has been sent to your email.' 
       })
+      router.push('/login')
     } catch (err: unknown) {
-      let message = 'Authentication failed. Please check your credentials.'
+      let message = 'Registration failed. Please try again.'
 
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { status?: number; data?: { message?: string } } }
-        if (axiosErr.response?.status === 401) {
-          message = 'Invalid credentials or account is inactive.'
-        } else if (axiosErr.response?.status === 400) {
-          message = 'Invalid request. Please check your input.'
+        if (axiosErr.response?.status === 409) {
+          message = 'Email already exists.'
+        } else if (axiosErr.response?.status === 401) {
+          message = 'API requires authentication to create users. Public registration is not supported by the backend.'
         } else if (axiosErr.response?.data?.message) {
           message = axiosErr.response.data.message
         }
       }
 
       setError(message)
-      toast.error('Login Failed', { description: message })
+      toast.error('Registration Failed', { description: message })
     } finally {
       setIsLoading(false)
     }
@@ -66,7 +73,7 @@ export function LoginView() {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-mrp-primary/5 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-mrp-primary/5 rounded-full blur-[120px]" />
 
-      {/* Login Card */}
+      {/* Registration Card */}
       <div className="w-full max-w-[420px] z-10">
         <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl overflow-hidden">
           {/* Top Branding Bar */}
@@ -82,7 +89,7 @@ export function LoginView() {
                 Zeus Orchestrator
               </h1>
               <p className="text-[11px] text-mrp-text-muted mt-1 font-medium uppercase tracking-wider">
-                Enterprise Resource Gateway
+                Account Provisioning
               </p>
             </div>
 
@@ -95,10 +102,37 @@ export function LoginView() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name Field */}
+              <div>
+                <label
+                  htmlFor="register-name"
+                  className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
+                >
+                  Full Name
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted">
+                    <User size={16} />
+                  </div>
+                  <input
+                    id="register-name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={(e) => {
+                      setError(null)
+                      setFormData({ ...formData, full_name: e.target.value })
+                    }}
+                    className="w-full bg-mrp-app border border-mrp-border text-white pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors placeholder:text-mrp-text-muted/50"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
               {/* Email Field */}
               <div>
                 <label
-                  htmlFor="login-email"
+                  htmlFor="register-email"
                   className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
                 >
                   Email
@@ -108,10 +142,9 @@ export function LoginView() {
                     <Mail size={16} />
                   </div>
                   <input
-                    id="login-email"
+                    id="register-email"
                     type="email"
                     required
-                    autoComplete="email"
                     value={formData.email}
                     onChange={(e) => {
                       setError(null)
@@ -123,47 +156,39 @@ export function LoginView() {
                 </div>
               </div>
 
-              {/* Password Field */}
+              {/* Role Field */}
               <div>
-                <div className="mb-2">
-                  <label
-                    htmlFor="login-password"
-                    className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider"
-                  >
-                    Password
-                  </label>
-                </div>
+                <label
+                  htmlFor="register-role"
+                  className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2"
+                >
+                  Access Role
+                </label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted">
-                    <Lock size={16} />
+                    <ShieldCheck size={16} />
                   </div>
-                  <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    autoComplete="current-password"
-                    value={formData.password}
-                    onChange={(e) => {
-                      setError(null)
-                      setFormData({ ...formData, password: e.target.value })
-                    }}
-                    className="w-full bg-mrp-app border border-mrp-border text-white pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors placeholder:text-mrp-text-muted/50"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-mrp-text-muted hover:text-white transition-colors"
+                  <select
+                    id="register-role"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                    className="w-full bg-mrp-app border border-mrp-border text-white pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors appearance-none cursor-pointer"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                    {ROLE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                <p className="text-[10px] text-mrp-text-muted mt-2">
+                  A system-generated password will be sent to the provided email address.
+                </p>
               </div>
 
-              {/* Login Button */}
+              {/* Submit Button */}
               <button
-                id="login-submit"
+                id="register-submit"
                 type="submit"
                 disabled={isLoading}
                 className="w-full bg-mrp-primary hover:bg-mrp-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-sm text-[12px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 mt-4 shadow-lg shadow-mrp-primary/10"
@@ -171,28 +196,20 @@ export function LoginView() {
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 ) : (
-                  'LOGIN'
+                  'REGISTER'
                 )}
               </button>
 
-              {/* Create Account Link */}
+              {/* Back to Login Link */}
               <div className="text-center mt-4">
                 <a
-                  href="/register"
-                  className="text-[11px] font-bold text-mrp-primary hover:text-mrp-primary-hover uppercase tracking-widest transition-colors inline-block"
+                  href="/login"
+                  className="text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-widest transition-colors inline-block"
                 >
-                  Create Account
+                  Return to Login
                 </a>
               </div>
             </form>
-
-            {/* Security Notice */}
-            <div className="mt-8 pt-6 border-t border-mrp-border flex items-start gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-mrp-warning animate-pulse mt-1 shrink-0" />
-              <p className="text-[10px] text-mrp-text-muted leading-relaxed italic">
-                Authorized access only. All sessions are logged and monitored via the Audit Protocol for security compliance.
-              </p>
-            </div>
           </div>
         </div>
 

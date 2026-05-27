@@ -56,25 +56,6 @@ interface UserDialogProps {
   onClose: () => void
 }
 
-// Generates a secure random password (sent silently to the backend;
-// the backend will email it to the new user).
-function generatePassword(length = 12): string {
-  const upper   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const lower   = 'abcdefghijklmnopqrstuvwxyz'
-  const digits  = '0123456789'
-  const special = '!@#$%^&*()_+'
-  const all     = upper + lower + digits + special
-  let pwd = [
-    upper[Math.floor(Math.random() * upper.length)],
-    lower[Math.floor(Math.random() * lower.length)],
-    digits[Math.floor(Math.random() * digits.length)],
-    special[Math.floor(Math.random() * special.length)],
-  ]
-  for (let i = pwd.length; i < length; i++) {
-    pwd.push(all[Math.floor(Math.random() * all.length)])
-  }
-  return pwd.sort(() => 0.5 - Math.random()).join('')
-}
 
 // Role display labels and their API snake_case values
 const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
@@ -107,7 +88,6 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
           email: form.email,
           full_name: form.full_name,
           role: form.role,
-          password: generatePassword(), // auto-generated; backend will email it to the user
         }
         await createUser.mutateAsync(payload)
       } else if (user) {

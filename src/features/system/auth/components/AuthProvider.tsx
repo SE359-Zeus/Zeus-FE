@@ -33,7 +33,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useAuth } from "@/features/system/auth/hooks/useAuth";
 import { useAuthStore } from "@/lib/stores/auth.store";
 import { refreshTokenSilently } from "@/lib/axios.client";
 

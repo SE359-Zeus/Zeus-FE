@@ -61,7 +61,8 @@ import { useAuthStore } from "@/lib/stores/auth.store";
 import {
   refreshTokenSilently,
 } from "@/lib/axios.client";
-import { login, logout, buildUserFromToken } from "@/features/auth/auth.service";
+import { login, logout, buildUserFromToken } from "@/features/system/auth/auth.service";
+import { getDefaultRouteForRole } from "@/features/system/auth/roleRoutes";
 import type { LoginRequest } from "@/lib/types/api.types";
 
 export function useAuth() {
@@ -113,10 +114,15 @@ export function useAuth() {
   const handleLogin = useCallback(
     async (credentials: LoginRequest) => {
       await login(credentials);
+
+      // Determine landing page from the role embedded in the JWT
+      const role = useAuthStore.getState().currentUser?.role
+      const destination = getDefaultRouteForRole(role)
+
       toast.success("Login Successful", {
         description: "Session initialized. Redirecting...",
       });
-      router.push("/mrp/dashboard");
+      router.push(destination);
     },
     [router],
   );

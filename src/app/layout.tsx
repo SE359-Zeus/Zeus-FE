@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { AuthProvider } from "@/features/auth/components/AuthProvider";
+import { AuthProvider } from "@/features/system/auth/components/AuthProvider";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
 
 const inter = Inter({

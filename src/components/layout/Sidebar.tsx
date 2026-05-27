@@ -22,7 +22,9 @@ import {
   Ship,
   Boxes
 } from 'lucide-react'
-import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useAuth } from '@/features/system/auth/hooks/useAuth'
+import { useAuthStore } from '@/lib/stores/auth.store'
+import { getAllowedSectionsForRole } from '@/features/system/auth/roleRoutes'
 
 interface SidebarProps {
   collapsed: boolean
@@ -57,7 +59,7 @@ const navSections = [
     ]
   },
   {
-    title: 'HR',
+    title: 'System',
     items: [
       { href: '/system/user-access', label: 'User Access', icon: Users },
       { href: '/system/audit-logs', label: 'Audit Logs', icon: History },
@@ -68,12 +70,13 @@ const navSections = [
 export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const { handleLogout } = useAuth()
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    'MRP': true,
-    'SCM': true,
-    'Sales': true,
-    'HR': true,
-  })
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const allowedSections = getAllowedSectionsForRole(currentUser?.role)
+  const visibleSections = navSections.filter(s => allowedSections.includes(s.title))
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
+    Object.fromEntries(navSections.map(s => [s.title, true]))
+  )
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({
@@ -146,7 +149,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
       {/* Navigation Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pt-2">
-        {navSections.map((section) => {
+        {visibleSections.map((section) => {
           const isSectionExpanded = expandedSections[section.title] !== false
 
           return (
