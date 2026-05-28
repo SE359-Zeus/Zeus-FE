@@ -177,15 +177,6 @@ export function LoginView() {
                 )}
               </button>
 
-              {/* Create Account Link */}
-              <div className="text-center mt-4">
-                <a
-                  href="/register"
-                  className="text-[11px] font-bold text-mrp-primary hover:text-mrp-primary-hover uppercase tracking-widest transition-colors inline-block"
-                >
-                  Create Account
-                </a>
-              </div>
             </form>
 
             {/* Security Notice */}
