@@ -187,7 +187,6 @@ apiClient.interceptors.response.use(
       const tokenPair = await refreshTokenSilently();
 
       setAccessToken(tokenPair.access_token);
-      _inMemoryRefreshToken = tokenPair.refresh_token;
 
       drainQueue(tokenPair.access_token);
 
@@ -209,24 +208,6 @@ apiClient.interceptors.response.use(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// In-memory Refresh Token
-// Module-level variable (not localStorage). Resets on page reload.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** @internal Do not import directly — use storeRefreshToken / clearRefreshToken. */
-let _inMemoryRefreshToken: string | null = null;
-
-/** Persists the refresh token to the module-level in-memory slot. */
-export function storeRefreshToken(token: string): void {
-  _inMemoryRefreshToken = token;
-}
-
-/** Erases the in-memory refresh token (call on logout). */
-export function clearRefreshToken(): void {
-  _inMemoryRefreshToken = null;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Silent Refresh — uses RAW axios (no interceptors) to prevent recursion
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -234,18 +215,18 @@ export function clearRefreshToken(): void {
  * Calls POST /system/auth/refresh using a plain axios instance that bypasses
  * all interceptors. This prevents the 401 handler from calling itself.
  *
+ * The browser automatically attaches the HttpOnly `refresh_token` cookie on
+ * this request because `withCredentials: true` is set. No manual cookie
+ * reading or body injection is needed.
+ *
  * Because this bypasses our success interceptor, the response IS a full
  * AxiosResponse. We manually access .data (ApiResponse) and .data.data (TokenPair).
  */
 async function refreshTokenSilently(): Promise<TokenPair> {
-  if (!_inMemoryRefreshToken) {
-    throw new Error("[Zeus] No refresh token available for silent refresh.");
-  }
-
   // Raw axios — intentionally bypasses apiClient interceptors.
   const axiosResponse = await axios.post<ApiResponse<TokenPair>>(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
-    { refresh_token: _inMemoryRefreshToken } satisfies { refresh_token: string },
+    {}, // empty body — refresh token is sent automatically via HttpOnly cookie
     {
       withCredentials: true,
       headers: { "Content-Type": "application/json" },

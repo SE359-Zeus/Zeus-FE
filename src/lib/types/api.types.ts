@@ -38,16 +38,27 @@
 
 /**
  * The universal response envelope returned by every Zeus API endpoint.
+ * Matches the BE `ResponseEnvelope` struct exactly:
  *
- * @template T  The shape of the `data` field (the actual payload).
- *              Use `null` for endpoints that return no payload.
+ *   {
+ *     "statusCode": 200,
+ *     "message":    "success",
+ *     "metadata":   { ... },     <- trace IDs, error codes
+ *     "data":       <T>          <- the actual payload
+ *   }
+ *
+ * For list endpoints, `data` is shaped as:
+ *   { items: T[], pagination: PaginationMeta }
+ *
+ * @template T  The shape of the `data` field.
+ *              Use `null` for action endpoints that return no payload.
  *
  * @example
  *   // Single-resource endpoint
  *   ApiResponse<User>
  *
  *   // Paginated list endpoint
- *   ApiResponse<PaginatedResult<User>>
+ *   ApiResponse<PaginatedResult<AuditLog>>
  *
  *   // Action endpoint with no payload
  *   ApiResponse<null>
@@ -61,16 +72,19 @@ export interface ApiResponse<T = unknown> {
 
   /**
    * The actual response payload.
+   * For list endpoints: `{ items: T[], pagination: PaginationMeta }`
    * `null` when the endpoint performs an action and returns no entity.
    */
   data: T | null;
 
   /**
-   * Freeform server-side metadata.
-   * Pagination info appears inside `data` for list endpoints.
-   * This field is reserved for trace IDs, feature flags, etc.
+   * Server-side metadata (trace IDs, error codes, etc.).
+   * Contains pagination for list endpoints.
    */
-  metadata: Record<string, unknown>;
+  metadata: {
+    pagination?: PaginationMeta;
+    [key: string]: unknown;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,8 +92,7 @@ export interface ApiResponse<T = unknown> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Pagination metadata attached to every list response.
- * Comes inside the `data` field as `{ items, pagination }`.
+ * Pagination metadata returned inside `data.pagination` for every list endpoint.
  *
  * @schema PaginationMeta
  */
@@ -94,16 +107,27 @@ export interface PaginationMeta {
   total_pages: number;
 }
 
+
 /**
- * Shape of `data` for paginated list endpoints.
- * Paired with `ApiResponse<PaginatedResult<T>>`.
+ * Shape of `ApiResponse.data` for paginated list endpoints.
+ *
+ * The API returns both items and pagination nested inside `data`:
+ *   data: { items: T[], pagination: PaginationMeta }
+ *
+ * Access pattern in components:
+ *   const items      = response.data?.items ?? []
+ *   const pagination = response.data?.pagination
  *
  * @template T  The item model (e.g. User, AuditLog).
  */
 export interface PaginatedResult<T> {
   items: T[];
-  pagination: PaginationMeta;
+  pagination?: PaginationMeta;
 }
+
+/** Alias for PaginatedResult — both names are valid. */
+export type PaginatedData<T> = PaginatedResult<T>;
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // § 3. Authentication Models
@@ -154,6 +178,17 @@ export interface LoginData {
   refresh_token: string;
 }
 
+/**
+ * Request body for POST /system/auth/change-password.
+ * @schema ChangePasswordRequest
+ */
+export interface ChangePasswordRequest {
+  /** Current password for verification. */
+  old_password: string;
+  /** New password to set. */
+  new_password: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // § 4. User Models
 // Source: #/components/schemas/{UserResponse, CreateUserRequest,
@@ -163,8 +198,24 @@ export interface LoginData {
 /**
  * Possible roles for a system user.
  * Controls permission levels throughout the application.
+ *
+ * Display labels map to snake_case API values:
+ *   "SCM Operator"   → "scm_operator"
+ *   "SCM Worker"     → "scm_worker"
+ *   "Sales Operator" → "sales_operator"
+ *   "Sales Worker"   → "sales_worker"
+ *   "MRP Operator"   → "mrp_operator"
+ *   "MRP Worker"     → "mrp_worker"
+ *   "Admin"          → "admin"
  */
-export type UserRole = "Admin" | "Editor" | "Viewer";
+export type UserRole =
+  | "scm_operator"
+  | "scm_worker"
+  | "sales_operator"
+  | "sales_worker"
+  | "mrp_operator"
+  | "mrp_worker"
+  | "admin";
 
 /**
  * Lifecycle status of a user account.
@@ -210,8 +261,6 @@ export type UserResponse = User;
 export interface CreateUserRequest {
   /** Must be a valid email address. Returns 409 if already taken. */
   email: string;
-  /** Plain-text initial password — minimum 8 characters. */
-  password: string;
   /** User's display name. */
   full_name: string;
   /** Initial access control role. */

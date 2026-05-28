@@ -1,12 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Factory, Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '@/features/auth/hooks/useAuth'
+import { useAuth } from '@/features/system/auth/hooks/useAuth'
+import { useAuthStore } from '@/lib/stores/auth.store'
+import { getDefaultRouteForRole } from '@/features/system/auth/roleRoutes'
 
 export function LoginView() {
-  const { handleLogin, isAuthenticated } = useAuth()
+  const { handleLogin } = useAuth()
+  const router = useRouter()
+  const isReady = useAuthStore((s) => s.isReady)
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken)
+  const currentUser = useAuthStore((s) => s.currentUser)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -14,6 +21,14 @@ export function LoginView() {
     email: '',
     password: ''
   })
+
+  // If the user already has a valid session (bootstrapping succeeded),
+  // redirect them away from the login page automatically.
+  useEffect(() => {
+    if (isReady && isAuthenticated) {
+      router.replace(getDefaultRouteForRole(currentUser?.role))
+    }
+  }, [isReady, isAuthenticated, currentUser, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -152,7 +167,7 @@ export function LoginView() {
               <button
                 id="login-submit"
                 type="submit"
-                disabled={isLoading || isAuthenticated}
+                disabled={isLoading}
                 className="w-full bg-mrp-primary hover:bg-mrp-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-sm text-[12px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 mt-4 shadow-lg shadow-mrp-primary/10"
               >
                 {isLoading ? (
@@ -161,6 +176,7 @@ export function LoginView() {
                   'LOGIN'
                 )}
               </button>
+
             </form>
 
             {/* Security Notice */}

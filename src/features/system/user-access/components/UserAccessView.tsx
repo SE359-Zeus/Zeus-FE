@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import {
-  UserPlus, Pencil, Search, ChevronLeft, ChevronRight,
+  UserPlus, Pencil, Search,
   Loader2, RefreshCw, UserCog, ToggleLeft, ToggleRight, X,
 } from 'lucide-react'
 import { useUsers, useCreateUser, useUpdateUser, useSetUserStatus } from '@/features/system/user-access/hooks/useUsers'
 import type { UserResponse, CreateUserRequest, UpdateUserRequest, UserRole } from '@/lib/types/api.types'
+import { PaginationBar } from '@/components/ui/PaginationBar'
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -22,13 +23,26 @@ function StatusBadge({ status }: { status: 'ACTIVE' | 'INACTIVE' }) {
 
 function RoleBadge({ role }: { role: UserRole }) {
   const map: Record<UserRole, string> = {
-    Admin:  'bg-mrp-primary/10 border-mrp-primary/20 text-mrp-primary',
-    Editor: 'bg-mrp-warning/10 border-mrp-warning/20 text-mrp-warning',
-    Viewer: 'bg-mrp-text-muted/10 border-mrp-text-muted/20 text-mrp-text-muted',
+    admin:          'bg-mrp-primary/10 border-mrp-primary/20 text-mrp-primary',
+    scm_operator:   'bg-mrp-warning/10 border-mrp-warning/20 text-mrp-warning',
+    scm_worker:     'bg-mrp-warning/10 border-mrp-warning/20 text-mrp-warning',
+    sales_operator: 'bg-mrp-success/10 border-mrp-success/20 text-mrp-success',
+    sales_worker:   'bg-mrp-success/10 border-mrp-success/20 text-mrp-success',
+    mrp_operator:   'bg-mrp-text-muted/10 border-mrp-text-muted/20 text-mrp-text-muted',
+    mrp_worker:     'bg-mrp-text-muted/10 border-mrp-text-muted/20 text-mrp-text-muted',
+  }
+  const labels: Record<UserRole, string> = {
+    admin:          'Admin',
+    scm_operator:   'SCM Operator',
+    scm_worker:     'SCM Worker',
+    sales_operator: 'Sales Operator',
+    sales_worker:   'Sales Worker',
+    mrp_operator:   'MRP Operator',
+    mrp_worker:     'MRP Worker',
   }
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider border ${map[role]}`}>
-      {role}
+      {labels[role] ?? role}
     </span>
   )
 }
@@ -43,6 +57,18 @@ interface UserDialogProps {
   onClose: () => void
 }
 
+
+// Role display labels and their API snake_case values
+const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
+  { label: 'SCM Operator',   value: 'scm_operator' },
+  { label: 'SCM Worker',     value: 'scm_worker' },
+  { label: 'Sales Operator', value: 'sales_operator' },
+  { label: 'Sales Worker',   value: 'sales_worker' },
+  { label: 'MRP Operator',   value: 'mrp_operator' },
+  { label: 'MRP Worker',     value: 'mrp_worker' },
+  { label: 'Admin',          value: 'admin' },
+]
+
 function UserDialog({ mode, user, onClose }: UserDialogProps) {
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
@@ -50,8 +76,7 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
   const [form, setForm] = useState({
     full_name: user?.full_name ?? '',
     email: user?.email ?? '',
-    password: '',
-    role: (user?.role ?? 'Viewer') as UserRole,
+    role: (user?.role ?? 'scm_operator') as UserRole,
   })
 
   const isLoading = createUser.isPending || updateUser.isPending
@@ -62,7 +87,6 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
       if (mode === 'create') {
         const payload: CreateUserRequest = {
           email: form.email,
-          password: form.password,
           full_name: form.full_name,
           role: form.role,
         }
@@ -89,7 +113,7 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
           <div className="flex items-center gap-2">
             <UserCog size={16} className="text-mrp-primary" />
             <h2 className="text-[13px] font-bold text-white uppercase tracking-wider">
-              {mode === 'create' ? 'Add New Operator' : 'Edit Operator'}
+              {mode === 'create' ? 'Add New User' : 'Edit User'}
             </h2>
           </div>
           <button onClick={onClose} className="text-mrp-text-muted hover:text-white transition-colors p-1">
@@ -130,45 +154,23 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
             </div>
           )}
 
-          {/* Password — only shown on create */}
-          {mode === 'create' && (
-            <div>
-              <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">
-                Initial Password <span className="text-mrp-text-muted/50 normal-case font-normal">(min 8 chars)</span>
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
-                className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors placeholder:text-mrp-text-muted/40"
-                placeholder="••••••••"
-              />
-            </div>
-          )}
 
           {/* Role */}
           <div>
             <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">
               Access Role
             </label>
-            <div className="flex gap-2">
-              {(['Admin', 'Editor', 'Viewer'] as UserRole[]).map(r => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setForm({ ...form, role: r })}
-                  className={`flex-1 py-2 rounded-sm text-[12px] font-bold uppercase tracking-wider border transition-all ${
-                    form.role === r
-                      ? 'bg-mrp-primary border-mrp-primary text-white'
-                      : 'bg-mrp-app border-mrp-border text-mrp-text-muted hover:border-mrp-primary/50 hover:text-white'
-                  }`}
-                >
-                  {r}
-                </button>
+            <select
+              value={form.role}
+              onChange={e => setForm({ ...form, role: e.target.value as UserRole })}
+              className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-sm focus:outline-none focus:border-mrp-primary rounded-sm transition-colors appearance-none cursor-pointer"
+            >
+              {ROLE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Actions */}
@@ -188,7 +190,7 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
             >
               {isLoading
                 ? <Loader2 size={14} className="animate-spin" />
-                : mode === 'create' ? 'Create Operator' : 'Save Changes'
+                : mode === 'create' ? 'Create User' : 'Save Changes'
               }
             </button>
           </div>
@@ -204,7 +206,7 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
 
 export function UserAccessView() {
   const [page, setPage] = useState(1)
-  const [limit] = useState(15)
+  const [limit, setLimit] = useState(15)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null)
@@ -228,7 +230,7 @@ export function UserAccessView() {
   const setStatus = useSetUserStatus()
 
   const users = data?.data?.items ?? []
-  const pagination = data?.data?.pagination
+  const pagination = data?.metadata?.pagination
 
   const handleToggleStatus = (user: UserResponse) => {
     const next = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
@@ -283,7 +285,7 @@ export function UserAccessView() {
               className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm"
             >
               <UserPlus size={16} />
-              Add Operator
+              Add User
             </button>
           </div>
         </div>
@@ -405,36 +407,17 @@ export function UserAccessView() {
             </table>
           </div>
 
-          {/* Pagination Footer */}
-          {pagination && (
-            <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
-              <span className="text-[13px] text-mrp-text-muted">
-                {pagination.total_rows === 0
-                  ? 'No results'
-                  : `Page ${pagination.page} of ${pagination.total_pages} · ${pagination.total_rows} operators total`
-                }
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page <= 1 || isFetching}
-                  className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <span className="text-[13px] text-white font-mono px-2">
-                  {page} / {pagination.total_pages || 1}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(pagination.total_pages, p + 1))}
-                  disabled={page >= pagination.total_pages || isFetching}
-                  className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Pagination Footer — always visible */}
+          <PaginationBar
+            itemLabel="Users"
+            page={page}
+            limit={limit}
+            totalRows={pagination?.total_rows ?? 0}
+            totalPages={pagination?.total_pages ?? 1}
+            isFetching={isFetching}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+          />
         </div>
       </div>
     </>

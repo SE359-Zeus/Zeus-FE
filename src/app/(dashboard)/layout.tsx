@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
-import { AuthGuard } from '@/features/auth/components/AuthGuard'
+import { AuthGuard } from '@/features/system/auth/components/AuthGuard'
 
 export default function DashboardLayout({
   children,

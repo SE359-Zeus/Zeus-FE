@@ -11,8 +11,6 @@ export {
   apiPut,
   apiPatch,
   apiDelete,
-  storeRefreshToken,
-  clearRefreshToken,
   refreshTokenSilently,
   API_BASE_URL,
 } from "./axios.client";
@@ -30,10 +28,10 @@ export { cn } from "./utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 // § Envelope
-export type { ApiResponse, PaginationMeta, PaginatedResult } from "./types/api.types";
+export type { ApiResponse, PaginationMeta, PaginatedData, PaginatedResult } from "./types/api.types";
 
 // § Authentication
-export type { LoginRequest, RefreshRequest, TokenPair, LoginData } from "./types/api.types";
+export type { LoginRequest, RefreshRequest, TokenPair, LoginData, ChangePasswordRequest } from "./types/api.types";
 
 // § Users
 export type {
