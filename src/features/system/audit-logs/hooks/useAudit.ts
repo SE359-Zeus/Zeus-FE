@@ -2,13 +2,17 @@
  * @file useAudit.ts
  * @description React Query hooks for the Audit Logs domain.
  *
- * Access pattern in components:
- *   const { data } = useAuditLogs(filter)
- *   data?.data?.items       → AuditLog[]
- *   data?.data?.pagination  → PaginationMeta
+ * API response for list endpoints:
+ *   data: { items: AuditLog[] }
+ *   metadata: { pagination: PaginationMeta }
  *
- *   const { data: metrics } = useAuditMetrics()
- *   metrics?.data?.logins_today → number
+ * Access pattern in components:
+ *   const { data: res } = useAuditLogs(filter)
+ *   const items      = res?.data?.items ?? []
+ *   const pagination = res?.metadata?.pagination
+ *
+ *   const { data: res } = useAuditMetrics()
+ *   const metrics = res?.data
  */
 
 "use client";

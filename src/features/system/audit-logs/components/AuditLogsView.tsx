@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react'
 import {
   Filter, Download, RefreshCw, Search, ArrowUpDown,
   LogIn, Pencil, Trash2, Plus, Settings, ShieldCheck,
-  ChevronLeft, ChevronRight, AlertTriangle, Loader2,
+  AlertTriangle, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useAuditLogs, useAuditMetrics } from '@/features/system/audit-logs/hooks/useAudit'
 import type { AuditActionType, AuditLog } from '@/lib/types/api.types'
+import { PaginationBar } from '@/components/ui/PaginationBar'
 
 // ---------------------------------------------------------------------------
 // Action Config
@@ -72,19 +73,37 @@ type FilterType = AuditActionType | 'ALL'
 
 export function AuditLogsView() {
   const [page, setPage] = useState(1)
-  const [limit] = useState(15)
+  const [limit, setLimit] = useState(15)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterAction, setFilterAction] = useState<FilterType>('ALL')
   const [sortDesc, setSortDesc] = useState(true)
+  const [startDateInput, setStartDateInput] = useState('')
+  const [endDateInput, setEndDateInput] = useState('')
 
-  // Reset page when filter changes
-  useEffect(() => { setPage(1) }, [filterAction])
+  // Reset page when filter action or date range changes
+  useEffect(() => {
+    setPage(1)
+  }, [filterAction, startDateInput, endDateInput])
+
+  // Helper to format date strings to RFC 3339 strings safely
+  const getRFC3339Date = (dateStr: string, isEnd = false) => {
+    if (!dateStr) return undefined
+    try {
+      const date = new Date(isEnd ? `${dateStr}T23:59:59` : `${dateStr}T00:00:00`)
+      if (isNaN(date.getTime())) return undefined
+      return date.toISOString()
+    } catch {
+      return undefined
+    }
+  }
 
   // Build API filter
   const apiFilter = {
     page,
     limit,
     ...(filterAction !== 'ALL' ? { action_type: filterAction } : {}),
+    ...(startDateInput ? { start_date: getRFC3339Date(startDateInput) } : {}),
+    ...(endDateInput ? { end_date: getRFC3339Date(endDateInput, true) } : {}),
   }
 
   const {
@@ -101,7 +120,7 @@ export function AuditLogsView() {
   } = useAuditMetrics()
 
   const logs: AuditLog[] = logsData?.data?.items ?? []
-  const pagination = logsData?.data?.pagination
+  const pagination = logsData?.metadata?.pagination
   const metrics = metricsData?.data
 
   // Client-side search filter (on current page data)
@@ -114,7 +133,7 @@ export function AuditLogsView() {
     : logs
 
   // Client-side sort toggle
-  const sorted = sortDesc ? [...filtered].reverse() : filtered
+  const sorted = sortDesc ? filtered : [...filtered].reverse()
 
   const handleExport = () => {
     if (filtered.length === 0) {
@@ -182,8 +201,8 @@ export function AuditLogsView() {
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
-          label="Events (This Page)"
-          value={logsData?.data?.pagination.total_rows ?? 0}
+          label="Total Events"
+          value={pagination?.total_rows ?? 0}
           color="text-white"
           isLoading={logsLoading}
         />
@@ -245,6 +264,38 @@ export function AuditLogsView() {
                 </button>
               )
             })}
+          </div>
+
+          <div className="h-4 w-px bg-mrp-border" />
+
+          {/* Date range filters */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">From:</span>
+            <input
+              type="date"
+              value={startDateInput}
+              onChange={e => setStartDateInput(e.target.value)}
+              className="bg-mrp-panel border border-mrp-border rounded-sm text-[12px] px-2.5 py-1 focus:outline-none focus:border-mrp-primary text-white h-8 transition-colors cursor-pointer scheme-dark"
+            />
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">To:</span>
+            <input
+              type="date"
+              value={endDateInput}
+              onChange={e => setEndDateInput(e.target.value)}
+              className="bg-mrp-panel border border-mrp-border rounded-sm text-[12px] px-2.5 py-1 focus:outline-none focus:border-mrp-primary text-white h-8 transition-colors cursor-pointer scheme-dark"
+            />
+            {(startDateInput || endDateInput) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDateInput('')
+                  setEndDateInput('')
+                }}
+                className="text-[11px] font-bold text-mrp-danger hover:text-red-400 uppercase tracking-wider ml-1 transition-colors"
+              >
+                Clear Dates
+              </button>
+            )}
           </div>
 
           {/* Loading indicator */}
@@ -345,36 +396,17 @@ export function AuditLogsView() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        {pagination && (
-          <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
-            <span className="text-[13px] text-mrp-text-muted">
-              {pagination.total_rows === 0
-                ? 'No entries'
-                : `Showing page ${pagination.page} of ${pagination.total_pages} · ${pagination.total_rows} total entries`
-              }
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page <= 1 || isFetching}
-                className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-[13px] text-white font-mono px-2">
-                {page} / {pagination.total_pages || 1}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(pagination.total_pages, p + 1))}
-                disabled={page >= pagination.total_pages || isFetching}
-                className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Pagination Footer — always visible */}
+        <PaginationBar
+          itemLabel="Entries"
+          page={page}
+          limit={limit}
+          totalRows={pagination?.total_rows ?? 0}
+          totalPages={pagination?.total_pages ?? 1}
+          isFetching={isFetching}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
       </div>
     </>
   )

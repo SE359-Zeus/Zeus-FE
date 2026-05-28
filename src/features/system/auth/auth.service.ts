@@ -24,6 +24,7 @@ import type {
   User,
   UserRole,
   UserStatus,
+  ChangePasswordRequest,
 } from "@/lib/types/api.types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,4 +154,21 @@ export async function refreshSession(): Promise<ApiResponse<TokenPair>> {
   }
 
   return response;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /system/auth/change-password
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Changes the current user's password.
+ * Requires a valid access token (BearerAuth).
+ *
+ * @param payload  { old_password, new_password }
+ * @returns ApiResponse<User> with the updated user profile
+ */
+export async function changePassword(
+  payload: ChangePasswordRequest,
+): Promise<ApiResponse<User>> {
+  return apiPost<User>("/system/auth/change-password", payload);
 }

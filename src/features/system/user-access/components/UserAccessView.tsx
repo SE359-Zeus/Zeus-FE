@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import {
-  UserPlus, Pencil, Search, ChevronLeft, ChevronRight,
+  UserPlus, Pencil, Search,
   Loader2, RefreshCw, UserCog, ToggleLeft, ToggleRight, X,
 } from 'lucide-react'
 import { useUsers, useCreateUser, useUpdateUser, useSetUserStatus } from '@/features/system/user-access/hooks/useUsers'
 import type { UserResponse, CreateUserRequest, UpdateUserRequest, UserRole } from '@/lib/types/api.types'
+import { PaginationBar } from '@/components/ui/PaginationBar'
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -205,7 +206,7 @@ function UserDialog({ mode, user, onClose }: UserDialogProps) {
 
 export function UserAccessView() {
   const [page, setPage] = useState(1)
-  const [limit] = useState(15)
+  const [limit, setLimit] = useState(15)
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null)
@@ -229,7 +230,7 @@ export function UserAccessView() {
   const setStatus = useSetUserStatus()
 
   const users = data?.data?.items ?? []
-  const pagination = data?.data?.pagination
+  const pagination = data?.metadata?.pagination
 
   const handleToggleStatus = (user: UserResponse) => {
     const next = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
@@ -406,36 +407,17 @@ export function UserAccessView() {
             </table>
           </div>
 
-          {/* Pagination Footer */}
-          {pagination && (
-            <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
-              <span className="text-[13px] text-mrp-text-muted">
-                {pagination.total_rows === 0
-                  ? 'No results'
-                  : `Page ${pagination.page} of ${pagination.total_pages} · ${pagination.total_rows} operators total`
-                }
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page <= 1 || isFetching}
-                  className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <span className="text-[13px] text-white font-mono px-2">
-                  {page} / {pagination.total_pages || 1}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(pagination.total_pages, p + 1))}
-                  disabled={page >= pagination.total_pages || isFetching}
-                  className="p-1.5 border border-mrp-border rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-border transition-colors disabled:opacity-30"
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Pagination Footer — always visible */}
+          <PaginationBar
+            itemLabel="Users"
+            page={page}
+            limit={limit}
+            totalRows={pagination?.total_rows ?? 0}
+            totalPages={pagination?.total_pages ?? 1}
+            isFetching={isFetching}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+          />
         </div>
       </div>
     </>

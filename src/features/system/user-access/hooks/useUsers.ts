@@ -2,16 +2,16 @@
  * @file useUsers.ts
  * @description React Query hooks for the Users domain.
  *
- * All hooks use ApiResponse<T> as their query data type, which matches
- * the return type of the service functions (interceptor already unwrapped
- * the AxiosResponse shell).
+ * API response for list endpoints:
+ *   data: { items: User[] }
+ *   metadata: { pagination: PaginationMeta }
  *
  * Access pattern in components:
  *   const { data } = useUsers()
- *   data?.data?.items   → User[]
- *   data?.data?.pagination → PaginationMeta
- *   data?.message       → string
- *   data?.statusCode    → number
+ *   const items      = data?.data?.items ?? []
+ *   const pagination = data?.metadata?.pagination
+ *   data?.message    -> string
+ *   data?.statusCode -> number
  */
 
 "use client";
