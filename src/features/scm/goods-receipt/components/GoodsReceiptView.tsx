@@ -35,7 +35,7 @@
 
 import React, { useState, useCallback } from 'react'
 import {
-  RefreshCw, Download, Lock, Unlock, ChevronRight,
+  RefreshCw, Download, Lock, Unlock, ChevronLeft, ChevronRight,
   AlertTriangle, PackageCheck, Loader2, ShieldAlert,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -783,11 +783,21 @@ export function GoodsReceiptView() {
         {/* Pagination */}
         <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
           <span className="text-[13px] text-mrp-text-muted">Showing 1-{filtered.length} of {filtered.length} Goods Receipts</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] text-mrp-text-muted">Rows per page:</span>
-            <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
-              <option>10</option><option>20</option><option>50</option>
-            </select>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-mrp-text-muted">Rows per page:</span>
+              <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
+                <option>10</option><option>20</option><option>50</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+                <ChevronLeft size={16} />
+              </button>
+              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import {
-  Search, Plus, ChevronDown, ChevronUp, Pencil,
+  Search, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Pencil,
   Download, X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -321,6 +321,14 @@ export function SupplierView() {
               <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
                 <option>10</option><option>20</option><option>50</option>
               </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+                <ChevronLeft size={16} />
+              </button>
+              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
         </div>
