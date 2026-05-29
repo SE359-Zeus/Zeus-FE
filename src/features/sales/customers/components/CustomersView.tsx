@@ -168,7 +168,9 @@ export function CustomersView() {
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-mrp-panel transition-colors group">
-                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary truncate max-w-[120px]">{customer.id}</td>
+                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary truncate max-w-[120px]">
+                      CLI-{String(customer.id).substring(0, 6).toUpperCase()}
+                    </td>
                     <td className="py-3 px-4 text-[13px] text-white font-medium flex items-center gap-2">
                       {customer.tier === 'B2B' ? <Building size={14} className="text-mrp-text-muted" /> : <User size={14} className="text-mrp-text-muted" />}
                       {customer.name}
@@ -218,7 +220,7 @@ export function CustomersView() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Client ID</label>
-                    <input type="text" value={editingCustomer.id} disabled className="w-full bg-mrp-app/50 border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-mrp-text-secondary font-mono cursor-not-allowed truncate" />
+                    <input type="text" value={`CLI-${String(editingCustomer.id).substring(0, 6).toUpperCase()}`} disabled className="w-full bg-mrp-app/50 border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-mrp-text-secondary font-mono cursor-not-allowed truncate" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Total Orders</label>
