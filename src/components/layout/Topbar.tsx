@@ -305,17 +305,6 @@ function UserMenu() {
             Change Password
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="bg-mrp-border my-1" />
-
-          {/* Logout — kept as a secondary small link below the separator */}
-          <DropdownMenuItem
-            id="menu-logout"
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 text-[13px] text-mrp-danger cursor-pointer hover:bg-mrp-danger/10 rounded-sm focus:bg-mrp-danger/10 focus:text-mrp-danger"
-          >
-            <LogOut size={14} />
-            Sign Out
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>

@@ -23,7 +23,6 @@ interface Shipment {
   status: ShipmentStatus
   carrier: string
   shipDate: string
-  eta: string
   items: ShipmentItem[]
   trackingNo: string
   origin: string
@@ -32,7 +31,7 @@ interface Shipment {
 const mockShipments: Shipment[] = [
   {
     id: 'SHP-2024-201', poRef: 'PO-2024-106', supplier: 'Intel Corporation',
-    status: 'In Transit', carrier: 'DHL Express', shipDate: '2026-05-13', eta: '2026-05-20',
+    status: 'In Transit', carrier: 'DHL Express', shipDate: '2026-05-13',
     trackingNo: 'DHL-8824991023', origin: 'Hillsboro, OR (US)',
     items: [
       { sku: 'SOC-XM100-PRO', description: 'Zeus SOC XM100 Pro (14-Core)', qty: 150 },
@@ -41,7 +40,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-202', poRef: 'PO-2024-105', supplier: 'Samsung Electronics',
-    status: 'In Transit', carrier: 'FedEx International', shipDate: '2026-05-12', eta: '2026-05-25',
+    status: 'In Transit', carrier: 'FedEx International', shipDate: '2026-05-12',
     trackingNo: 'FX-7743821900', origin: 'Suwon, KR',
     items: [
       { sku: 'RAM-64G-DDR5', description: '64GB DDR5 Memory Module', qty: 200 },
@@ -50,7 +49,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-203', poRef: 'PO-2024-103', supplier: 'NVIDIA',
-    status: 'Scheduled', carrier: 'Maersk Shipping', shipDate: '2026-05-20', eta: '2026-06-07',
+    status: 'Scheduled', carrier: 'Maersk Shipping', shipDate: '2026-05-20',
     trackingNo: '(pending)', origin: 'Santa Clara, CA (US)',
     items: [
       { sku: 'GPU-RTX5080-M', description: 'NVIDIA RTX 5080 Mobile (16GB)', qty: 200 },
@@ -58,7 +57,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-204', poRef: 'PO-2024-101', supplier: 'SK Hynix',
-    status: 'Delivered', carrier: 'UPS Freight', shipDate: '2026-05-06', eta: '2026-05-15',
+    status: 'Delivered', carrier: 'UPS Freight', shipDate: '2026-05-06',
     trackingNo: 'UPS-1Z999AA1012', origin: 'Icheon, KR',
     items: [
       { sku: 'RAM-32G-DDR5', description: '32GB DDR5-5600 SO-DIMM', qty: 300 },
@@ -67,7 +66,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-205', poRef: 'PO-2024-099', supplier: 'Texas Instruments',
-    status: 'Delayed', carrier: 'DHL Express', shipDate: '2026-04-30', eta: '2026-05-10',
+    status: 'Delayed', carrier: 'DHL Express', shipDate: '2026-04-30',
     trackingNo: 'DHL-6612338901', origin: 'Dallas, TX (US)',
     items: [
       { sku: 'PSU-GAN-240W', description: '240W GaN Power Supply', qty: 250 },
@@ -75,7 +74,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-206', poRef: 'PO-2024-107', supplier: 'LG Display',
-    status: 'Scheduled', carrier: 'Maersk Shipping', shipDate: '2026-05-28', eta: '2026-06-25',
+    status: 'Scheduled', carrier: 'Maersk Shipping', shipDate: '2026-05-28',
     trackingNo: '(pending)', origin: 'Paju, KR',
     items: [
       { sku: 'DISP-OLED-16', description: '16" 4K ProArt OLED Panel', qty: 100 },
@@ -83,7 +82,7 @@ const mockShipments: Shipment[] = [
   },
   {
     id: 'SHP-2024-207', poRef: 'PO-2024-098', supplier: 'Intel Corporation',
-    status: 'Delivered', carrier: 'FedEx International', shipDate: '2026-04-28', eta: '2026-05-08',
+    status: 'Delivered', carrier: 'FedEx International', shipDate: '2026-04-28',
     trackingNo: 'FX-5501229873', origin: 'Hillsboro, OR (US)',
     items: [
       { sku: 'SOC-XM100-LT', description: 'Zeus SOC XM100 LT (8-Core)', qty: 100 },
@@ -132,7 +131,7 @@ export function ShipmentView() {
 
   // Create Shipment modal
   const [showCreateShipment, setShowCreateShipment] = useState(false)
-  const [shForm, setShForm] = useState({ poRef: '', supplier: '', carrier: '', shipDate: '', eta: '' })
+  const [shForm, setShForm] = useState({ poRef: '', supplier: '', carrier: '', shipDate: '' })
 
   const handleSaveShipment = () => {
     if (!shForm.poRef.trim()) { toast.error('PO Reference is required'); return }
@@ -140,7 +139,7 @@ export function ShipmentView() {
     const newId = `SHP-${Date.now().toString().slice(-6)}`
     toast.success('Shipment Created', { description: `${newId} linked to ${shForm.poRef}` })
     setShowCreateShipment(false)
-    setShForm({ poRef: '', supplier: '', carrier: '', shipDate: '', eta: '' })
+    setShForm({ poRef: '', supplier: '', carrier: '', shipDate: '' })
   }
 
   const filtered = filter === 'ALL' ? mockShipments : mockShipments.filter((s) => s.status === filter)
@@ -216,7 +215,7 @@ export function ShipmentView() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10">
               <tr>
-                {['Shipment ID', 'PO Reference', 'Supplier', 'Items', 'Status', 'Carrier', 'Ship Date', 'ETA', ''].map((col) => (
+                {['Shipment ID', 'PO Reference', 'Supplier', 'Items', 'Status', 'Carrier', 'Ship Date', ''].map((col) => (
                   <th key={col} className={`py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap ${col === '' ? 'text-right' : ''}`}>{col}</th>
                 ))}
               </tr>
@@ -241,7 +240,6 @@ export function ShipmentView() {
                       </td>
                       <td className="py-3 px-4 text-[13px] text-mrp-text-secondary">{shp.carrier}</td>
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{shp.shipDate}</td>
-                      <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{shp.eta}</td>
                       <td className="py-3 px-4 text-right">
                         <button onClick={() => toggleRow(shp.id)} className="p-1 text-mrp-text-muted hover:text-white transition-colors cursor-pointer">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -252,7 +250,7 @@ export function ShipmentView() {
                     {/* Expanded Detail */}
                     {isExpanded && (
                       <tr key={`${shp.id}-exp`} className="bg-[#1a1c1e]">
-                        <td colSpan={9} className="p-0 border-b border-mrp-border">
+                        <td colSpan={8} className="p-0 border-b border-mrp-border">
                           <div className="p-6 space-y-6">
                             {/* Lifecycle Stepper */}
                             <div className="relative flex justify-between max-w-2xl mx-auto py-2">
@@ -312,7 +310,6 @@ export function ShipmentView() {
                                   { label: 'Origin', value: shp.origin },
                                   { label: 'Carrier', value: shp.carrier },
                                   { label: 'Ship Date', value: shp.shipDate },
-                                  { label: 'ETA', value: shp.eta },
                                 ].map((row) => (
                                   <div key={row.label} className="flex justify-between text-[13px]">
                                     <span className="text-mrp-text-muted">{row.label}</span>
@@ -322,7 +319,7 @@ export function ShipmentView() {
                                 {shp.status === 'Delayed' && (
                                   <div className="mt-3 pt-2 border-t border-mrp-border">
                                     <span className="text-mrp-danger text-[11px] font-bold uppercase tracking-wider">⚠ Shipment Delayed</span>
-                                    <p className="text-mrp-text-muted text-[11px] mt-1">Contact supplier to confirm revised ETA.</p>
+                                    <p className="text-mrp-text-muted text-[11px] mt-1">Contact supplier to confirm revised status.</p>
                                   </div>
                                 )}
                                 {shp.status !== 'Delivered' && shp.status !== 'Delayed' && (
@@ -412,17 +409,10 @@ export function ShipmentView() {
                   <option>Foxconn Technology</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Ship Date</label>
-                  <input value={shForm.shipDate} onChange={(e) => setShForm((f) => ({ ...f, shipDate: e.target.value }))}
-                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">ETA</label>
-                  <input value={shForm.eta} onChange={(e) => setShForm((f) => ({ ...f, eta: e.target.value }))}
-                    type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
-                </div>
+              <div>
+                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Ship Date</label>
+                <input value={shForm.shipDate} onChange={(e) => setShForm((f) => ({ ...f, shipDate: e.target.value }))}
+                  type="date" className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
               </div>
             </div>
             <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end gap-3">

@@ -125,6 +125,7 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
     }
+
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
