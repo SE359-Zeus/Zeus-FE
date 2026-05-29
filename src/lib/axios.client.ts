@@ -85,7 +85,7 @@ export const apiClient = axios.create({
    * on every cross-origin request. Without this flag the cookie is stripped
    * silently and silent refresh will always fail (returning 401).
    */
-  withCredentials: true,
+  withCredentials: false,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
