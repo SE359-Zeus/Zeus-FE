@@ -89,9 +89,9 @@ const mockSuppliers: Supplier[] = [
 
 const FILTER_TABS: { key: FilterType; label: string }[] = [
   { key: 'ALL', label: 'All' },
-  { key: 'Preferred', label: 'Preferred' },
-  { key: 'Qualified', label: 'Qualified' },
-  { key: 'Under Review', label: 'Under Review' },
+  { key: 'Preferred', label: 'Tier 1' },
+  { key: 'Qualified', label: 'Tier 2' },
+  { key: 'Under Review', label: 'Tier 3' },
 ]
 
 
