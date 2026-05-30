@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   FolderOpen, Folder, Cpu, MemoryStick, HardDrive, Monitor, Battery, RefreshCw,
   CircuitBoard, Plus, Trash2, X, PlusCircle, GitBranch, Loader2
@@ -38,6 +38,7 @@ interface WhereUsedItem {
 interface ModalRow { 
   id: number
   sku: string
+  name: string
   qty: number
 }
 
@@ -66,21 +67,31 @@ export function BomCatalogView() {
   
   const [showModal, setShowModal] = useState(false)
   const [modalName, setModalName] = useState('')
-  const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', qty: 1 }])
+  const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', name: '', qty: 1 }])
   const [nextId, setNextId] = useState(2)
+
   const [activeRowId, setActiveRowId] = useState<number | null>(null)
   const [skuQuery, setSkuQuery] = useState('')
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
-  const inputRefs = useRef<Record<number, HTMLInputElement | null>>({})
 
-  const ALL_SKUS = Array.from(new Set(catalog.map(c => c.model_code).filter(Boolean)))
+  const ALL_PARTS = catalog.map(item => ({ 
+    sku: item.model_code, 
+    name: item.model_name || 'Unknown Part' 
+  }))
 
   const fetchCatalogData = async () => {
     setIsLoading(true)
     try {
       const res = await apiGet<any>('/mrp/catalog')
-      const data = Array.isArray(res.data) ? res.data : []
-      setCatalog(data)
+      const dataList = Array.isArray(res.data) ? res.data : []
+      
+      dataList.sort((a, b) => {
+        const nameA = a.model_name || a.model_code || ''
+        const nameB = b.model_name || b.model_code || ''
+        return nameA.localeCompare(nameB)
+      })
+
+      setCatalog(dataList)
     } catch (error) {
       toast.error('Sync Error', { description: 'Cannot load Catalog directory.' })
     } finally {
@@ -129,10 +140,15 @@ export function BomCatalogView() {
     }
   }, [selectedSubSku])
 
-  const addRow = () => { setModalRows((p) => [...p, { id: nextId, sku: '', qty: 1 }]); setNextId((n) => n + 1) }
+  const addRow = () => { 
+    setModalRows((p) => [...p, { id: nextId, sku: '', name: '', qty: 1 }])
+    setNextId((n) => n + 1) 
+  }
+  
   const removeRow = (id: number) => setModalRows((p) => p.filter((r) => r.id !== id))
-  const updateRow = (id: number, f: 'sku' | 'qty', v: string | number) =>
-    setModalRows((p) => p.map((r) => r.id === id ? { ...r, [f]: v } : r))
+  
+  const updateRowQty = (id: number, qty: number) =>
+    setModalRows((p) => p.map((r) => r.id === id ? { ...r, qty } : r))
 
   const handleCreateAssembly = async () => {
     if (!modalName.trim()) return toast.error('Validation Error', { description: 'Assembly name is required' })
@@ -148,7 +164,7 @@ export function BomCatalogView() {
       toast.success('Created', { description: `Assembly mapped to ${modalName}` })
       setShowModal(false)
       setModalName('')
-      setModalRows([{ id: 1, sku: '', qty: 1 }])
+      setModalRows([{ id: 1, sku: '', name: '', qty: 1 }])
       fetchCatalogData()
     } catch (error) {
       toast.error('Create Failed', { description: 'Cannot save assembly configuration.' })
@@ -304,7 +320,7 @@ export function BomCatalogView() {
                     </span>
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-2">
-                    {selectedSubSku ? displaySku : (displayCatalogInfo?.model_name || displayAssemblyDetail?.name || 'Unregistered Model')}
+                    {selectedSubSku ? (catalog.find(c => c.model_code === displaySku)?.model_name || `Component ${displaySku}`) : (displayCatalogInfo?.model_name || displayAssemblyDetail?.name || 'Unregistered Model')}
                   </h2>
                   <p className="text-mrp-text-muted text-sm leading-relaxed">
                     {!selectedSubSku && (displayCatalogInfo?.description || displayAssemblyDetail?.description || 'No system description provided.')}
@@ -322,13 +338,13 @@ export function BomCatalogView() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <GitBranch size={14} className="text-mrp-text-muted" />
-                    <h3 className="text-[11px] font-bold text-white uppercase tracking-wider">Where Used Matrix</h3>
+                    <h3 className="text-[11px] font-bold text-white uppercase tracking-wider">Component Usage</h3>
                   </div>
                   <div className="border border-mrp-border rounded-sm overflow-hidden">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-mrp-app border-b border-mrp-border">
-                          <th className="px-4 py-2.5 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Parent Model Assembly</th>
+                          <th className="px-4 py-2.5 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Product Assembly</th>
                           <th className="px-4 py-2.5 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Qty Per Build</th>
                         </tr>
                       </thead>
@@ -360,16 +376,16 @@ export function BomCatalogView() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <CircuitBoard size={14} className="text-mrp-text-muted" />
-                    <h3 className="text-[11px] font-bold text-white uppercase tracking-wider">Assembly Structure Overview</h3>
+                    <h3 className="text-[11px] font-bold text-white uppercase tracking-wider">Bill of Materials</h3>
                   </div>
                   <div className="bg-mrp-app border border-mrp-border p-4 rounded-sm">
                     {displayAssemblyDetail ? (
                       <div className="flex flex-col gap-2">
                         <span className="text-[13px] text-mrp-text-secondary">
-                          This catalog item serves as a Parent Assembly comprising <strong className="text-white">{displayAssemblyDetail.components.length}</strong> unique component SKUs.
+                          This product contains <strong className="text-white">{displayAssemblyDetail.components.length}</strong> components.
                         </span>
                         <span className="text-[12px] text-mrp-text-muted">
-                          (Expand the directory folder on the left panel to inspect the full Bill of Materials hierarchy).
+                          Expand the item in the left directory to view the complete list of parts.
                         </span>
                       </div>
                     ) : (
@@ -422,37 +438,32 @@ export function BomCatalogView() {
                 <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                   {modalRows.map((row) => (
                     <div key={`modal-row-${row.id}`} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-7">
+                      <div className="col-span-7 relative">
                         <input
-                          ref={(el) => { inputRefs.current[row.id] = el }}
                           type="text"
                           autoComplete="off"
-                          placeholder="Type to filter catalog SKUs..."
-                          value={activeRowId === row.id ? skuQuery : row.sku}
+                          placeholder="Search SKU or Name..."
+                          value={activeRowId === row.id ? skuQuery : (row.sku ? `${row.sku} (${row.name})` : '')}
                           onFocus={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect()
                             setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width })
                             setActiveRowId(row.id)
-                            setSkuQuery(row.sku)
+                            setSkuQuery('')
                           }}
                           onChange={(e) => {
                             setSkuQuery(e.target.value)
                             setActiveRowId(row.id)
-                            updateRow(row.id, 'sku', '')
-                            const rect = e.currentTarget.getBoundingClientRect()
-                            setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: rect.width })
+                            setModalRows(prev => prev.map(r => r.id === row.id ? { ...r, sku: '', name: '' } : r))
                           }}
                           onBlur={() => setTimeout(() => setActiveRowId(null), 150)}
-                          className={`w-full bg-mrp-app border text-white px-2 py-2 text-[13px] font-mono focus:outline-none rounded-sm placeholder:text-mrp-text-muted placeholder:font-sans ${
-                            row.sku ? 'border-mrp-primary/50' : 'border-mrp-border'
-                          }`}
+                          className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] font-mono focus:outline-none focus:border-mrp-primary rounded-sm placeholder:text-mrp-text-muted placeholder:font-sans"
                         />
                       </div>
                       <div className="col-span-4">
                         <input
                           type="number" min={1}
                           value={row.qty}
-                          onChange={(e) => updateRow(row.id, 'qty', Number(e.target.value))}
+                          onChange={(e) => updateRowQty(row.id, Number(e.target.value))}
                           className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
                         />
                       </div>
@@ -480,30 +491,30 @@ export function BomCatalogView() {
       )}
 
       {showModal && activeRowId !== null && dropdownPos && (() => {
-        const filteredSkus = ALL_SKUS.filter(s => s.toLowerCase().includes(skuQuery.toLowerCase()))
+        const filteredParts = ALL_PARTS.filter(p => 
+          p.sku.toLowerCase().includes(skuQuery.toLowerCase()) || 
+          p.name.toLowerCase().includes(skuQuery.toLowerCase())
+        )
         return (
-          <div
-            className="fixed z-[9999] bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl max-h-48 overflow-y-auto"
+          <div 
+            className="fixed z-[9999] bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl max-h-48 overflow-y-auto" 
             style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
           >
-            {filteredSkus.length > 0 ? filteredSkus.map((s, dropIndex) => (
+            {filteredParts.length > 0 ? filteredParts.map((p, dropIndex) => (
               <div
-                key={`drop-${s}-${dropIndex}`}
+                key={`drop-${p.sku}-${dropIndex}`}
                 onMouseDown={() => {
-                  updateRow(activeRowId, 'sku', s)
+                  setModalRows(prev => prev.map(r => r.id === activeRowId ? { ...r, sku: p.sku, name: p.name } : r))
                   setActiveRowId(null)
                   setSkuQuery('')
                 }}
-                className={`px-3 py-2 text-[12px] font-mono cursor-pointer transition-colors ${
-                  s === (modalRows.find(r => r.id === activeRowId)?.sku)
-                    ? 'bg-mrp-primary text-white'
-                    : 'text-mrp-text-secondary hover:bg-mrp-app hover:text-white'
-                }`}
+                className="px-3 py-2 text-[12px] cursor-pointer hover:bg-mrp-app hover:text-white text-mrp-text-secondary transition-colors"
               >
-                {s}
+                <span className="font-mono font-bold text-mrp-primary">{p.sku}</span>
+                <span className="ml-2">— {p.name}</span>
               </div>
             )) : (
-              <div className="px-3 py-3 text-[12px] text-mrp-text-muted">No matching SKUs</div>
+              <div className="px-3 py-3 text-[12px] text-mrp-text-muted">No match found</div>
             )}
           </div>
         )
