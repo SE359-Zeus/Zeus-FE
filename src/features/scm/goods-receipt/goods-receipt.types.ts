@@ -146,3 +146,26 @@ export interface LineItemFormState {
   defective: string;
   productionDate: string;
 }
+
+/**
+ * Aggregate metrics for SCM Goods Receipt dashboard.
+ * @schema GET /goods-receipts/metrics response data
+ */
+export interface GoodsReceiptMetrics {
+  pending_receipts: number;
+  completed_today: number;
+  active_discrepancies: number;
+  inspection_queue: number;
+}
+
+/**
+ * Query parameters for listing Goods Receipts.
+ * @schema GET /goods-receipts query parameters
+ */
+export interface GoodsReceiptListParams {
+  status?: GRStatus;
+  page?: number;
+  limit?: number;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+}

@@ -38,11 +38,14 @@
  *   })
  */
 
-import { apiPost, apiDelete } from '@/lib'
-import type { ApiResponse } from '@/lib'
+import { apiGet, apiPost, apiDelete } from '@/lib'
+import type { ApiResponse, PaginatedResult } from '@/lib'
 import type {
   AcquireLockRequest,
   ProcessBlindReceiptRequest,
+  GoodsReceipt,
+  GoodsReceiptMetrics,
+  GoodsReceiptListParams,
 } from './goods-receipt.types'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,6 +59,39 @@ const SCM_BASE = '/scm'
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const goodsReceiptService = {
+  /**
+   * GET /scm/goods-receipts
+   *
+   * List all goods receipts with optional status filter, sorting, and pagination.
+   * Preloads line items for each record on the Go backend.
+   *
+   * @param params  Optional filtering, sorting, and pagination parameters
+   */
+  async listGoodsReceipts(
+    params?: GoodsReceiptListParams,
+  ): Promise<ApiResponse<PaginatedResult<GoodsReceipt>>> {
+    return apiGet<PaginatedResult<GoodsReceipt>>(`${SCM_BASE}/goods-receipts`, { params })
+  },
+
+  /**
+   * GET /scm/goods-receipts/metrics
+   *
+   * Retrieve aggregate metrics for SCM Goods Receipt dashboard.
+   */
+  async getMetrics(): Promise<ApiResponse<GoodsReceiptMetrics>> {
+    return apiGet<GoodsReceiptMetrics>(`${SCM_BASE}/goods-receipts/metrics`)
+  },
+
+  /**
+   * GET /scm/goods-receipts/{grId}
+   *
+   * Get complete details of a single Goods Receipt by ID, including its preloaded line items.
+   *
+   * @param grId  The Goods Receipt ID (e.g. "GR-2024-301")
+   */
+  async getGoodsReceipt(grId: string): Promise<ApiResponse<GoodsReceipt>> {
+    return apiGet<GoodsReceipt>(`${SCM_BASE}/goods-receipts/${grId}`)
+  },
   /**
    * POST /scm/goods-receipts/{grId}/lock
    *

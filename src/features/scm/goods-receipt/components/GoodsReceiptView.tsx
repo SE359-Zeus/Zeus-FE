@@ -43,6 +43,13 @@ import type { AxiosError } from 'axios'
 
 import { useAuthStore } from '@/lib'
 import { goodsReceiptService } from '../goods-receipt.service'
+import {
+  useGoodsReceipts,
+  useGoodsReceiptMetrics,
+  useAcquireLock,
+  useReleaseLock,
+  useProcessBlindReceipt,
+} from '../hooks/useGoodsReceipts'
 import type {
   GRStatus,
   LineItemFormState,
@@ -59,6 +66,9 @@ interface LineItem {
   sku: string
   name: string
   orderedQty: number
+  receivedQty?: number | null
+  defectiveQty?: number | null
+  productionDate?: string | null
   agingSensitive: boolean
   agingLabel?: string
 }
@@ -193,13 +203,6 @@ export function GoodsReceiptView() {
 
   const [filter, setFilter] = useState<FilterType>('ALL')
 
-  /**
-   * rows: authoritative UI state for each GR.
-   * On lock acquire / release / process, we mutate the relevant row in-place
-   * so the UI reflects the new lock state without a full re-fetch.
-   */
-  const [rows, setRows] = useState<GoodsReceiptRow[]>(mockGRs)
-
   /** Which row is currently expanded (showing inspection detail panel) */
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -217,14 +220,116 @@ export function GoodsReceiptView() {
     Map<string, Map<string, LineItemFormState>>
   >(new Map())
 
+  // ── Pagination State ──
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+
   // ── Auth: current user for operator_id ───────────────────────────────────
   const currentUser = useAuthStore((s) => s.currentUser)
   /** The operator_id sent to the API — falls back to a demo value so it works without login */
   const operatorId = currentUser?.id ?? 'demo-operator'
 
-  // ── Computed ─────────────────────────────────────────────────────────────
+  // ── React Query Hooks — Live SCM Goods Receipt APIs ─────────────────────
+  const { data: metricsRes, refetch: refetchMetrics } = useGoodsReceiptMetrics()
+  const metrics = metricsRes?.data
 
-  const filtered = filter === 'ALL' ? rows : rows.filter((g) => g.status === filter)
+  const { data: grListRes, isLoading: isListLoading, refetch: refetchList } = useGoodsReceipts({
+    page,
+    limit,
+    status: filter === 'ALL' ? undefined : filter,
+  })
+
+
+  const apiGRs = Array.isArray(grListRes?.data)
+    ? grListRes.data
+    : (grListRes?.data as any)?.items ?? []
+
+  console.log("[Zeus-DEBUG] SCM Goods Receipts list:", {
+    hasRes: !!grListRes,
+    statusCode: grListRes?.statusCode,
+    message: grListRes?.message,
+    dataType: typeof grListRes?.data,
+    dataIsArray: Array.isArray(grListRes?.data),
+    dataLength: Array.isArray(grListRes?.data) ? grListRes.data.length : null,
+    apiGRsLength: apiGRs.length,
+    accessTokenSet: !!currentUser
+  });
+
+  const pagination = grListRes?.data?.pagination ?? (grListRes as any)?.metadata?.pagination
+
+  const acquireLockMutation = useAcquireLock()
+  const releaseLockMutation = useReleaseLock()
+  const processBlindReceiptMutation = useProcessBlindReceipt()
+
+  // ── Computed & Robust Casing Mapping ─────────────────────────────────────
+  const displayGRs = grListRes ? apiGRs : mockGRs
+
+  const rows = displayGRs.map((g: any) => {
+    // Support both mock camelCase and API PascalCase/snake_case keys!
+    const id = g.id ?? g.ID
+    const poRef = g.poRef ?? g.po_ref ?? g.PORef
+    const vendorId = g.vendor_id ?? g.VendorID
+    const status = (g.status ?? g.Status) as GRStatus
+    const arrivalDate = g.arrivalDate ?? g.arrival_date ?? g.ArrivalDate
+    const operator = g.operator ?? g.operator_id ?? g.OperatorID ?? 'demo-operator'
+    const rawLockedBy = g.lockedBy ?? g.locked_by ?? g.LockedBy
+    const lockedBy = rawLockedBy === operatorId ? 'self' : (rawLockedBy || null)
+
+    const rawExpires = g.lock_expires_at ?? g.LockExpiresAt
+    let lockMinutes: number | null = g.lockMinutes ?? null
+    if (rawExpires) {
+      const diffMs = new Date(rawExpires).getTime() - Date.now()
+      lockMinutes = diffMs > 0 ? Math.ceil(diffMs / 60000) : null
+    }
+
+    const rawLineItems = g.lineItems ?? g.line_items ?? g.LineItems ?? []
+    const lineItems = rawLineItems.map((li: any) => ({
+      sku: li.sku ?? li.SKU,
+      name: li.name ?? li.Name,
+      orderedQty: li.orderedQty ?? li.ordered_qty ?? li.OrderedQty ?? 0,
+      receivedQty: li.receivedQty ?? li.received_qty ?? li.ReceivedQty ?? null,
+      defectiveQty: li.defectiveQty ?? li.defective_qty ?? li.DefectiveQty ?? null,
+      productionDate: li.productionDate ?? li.production_date ?? li.ProductionDate ?? null,
+      agingSensitive: li.agingSensitive ?? li.aging_sensitive ?? li.AgingSensitive ?? false,
+      agingLabel: li.agingLabel ?? li.aging_label ?? li.AgingLabel ?? 'AGING SENSITIVE',
+    }))
+
+    const VENDOR_NAMES: Record<string, string> = {
+      'd870ac5c-fa7d-394d-8f63-bbbb105ded34': 'Northwind Component Supply',
+      '24978c6b-587e-3528-92d2-84bf53067f09': 'Apex Industrial Parts',
+      'a6341699-fe34-3ab5-97a8-f14e1c868436': 'BluePeak Electronics',
+      '4ad26053-dcd1-3d15-b58e-ee8117e23ad2': 'Orion Component Works',
+      'f7f72cd2-3949-3595-a9db-f1b76f4786a4': 'Vertex Supply Group',
+    }
+    const vendor = g.vendor_name ?? g.VendorName ?? g.vendor ?? VENDOR_NAMES[vendorId] ?? `Vendor ${vendorId ? vendorId.substring(0, 8) : 'Unknown'}`
+
+    let formattedArrival = arrivalDate
+    if (arrivalDate && typeof arrivalDate === 'string' && arrivalDate.includes('-')) {
+      try {
+        formattedArrival = new Date(arrivalDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      } catch {
+        formattedArrival = String(arrivalDate)
+      }
+    }
+
+    return {
+      id,
+      poRef,
+      vendor,
+      status,
+      arrivalDate: formattedArrival,
+      operator,
+      lockedBy,
+      lockMinutes,
+      lineItems,
+    }
+  })
+
+  const filtered = apiGRs.length > 0 ? rows : (filter === 'ALL' ? rows : rows.filter((g) => g.status === filter))
+
+  // Pagination totals
+  const totalRows = pagination?.total_rows ?? filtered.length
+  const totalPages = pagination?.total_pages ?? Math.ceil(totalRows / limit) ?? 1
 
   // ── Loading helpers ───────────────────────────────────────────────────────
 
@@ -236,16 +341,6 @@ export function GoodsReceiptView() {
     })
 
   const isLoading = (key: string) => loadingKeys.has(key)
-
-  // ── Row mutation helpers ──────────────────────────────────────────────────
-
-  const updateRow = useCallback(
-    (grId: string, patch: Partial<GoodsReceiptRow>) =>
-      setRows((prev) =>
-        prev.map((r) => (r.id === grId ? { ...r, ...patch } : r)),
-      ),
-    [],
-  )
 
   // ── Form state helpers ────────────────────────────────────────────────────
 
@@ -284,10 +379,7 @@ export function GoodsReceiptView() {
 
     setLoading(key, true)
     try {
-      await goodsReceiptService.acquireLock(gr.id, operatorId)
-
-      // Optimistically update UI: mark this GR as locked by "self"
-      updateRow(gr.id, { lockedBy: 'self', lockMinutes: 60 })
+      await acquireLockMutation.mutateAsync({ grId: gr.id, operatorId })
       initFormState(gr)
       setExpandedId(gr.id)
 
@@ -312,10 +404,7 @@ export function GoodsReceiptView() {
 
     setLoading(key, true)
     try {
-      await goodsReceiptService.releaseLock(grId)
-
-      // Optimistically clear lock state in UI
-      updateRow(grId, { lockedBy: null, lockMinutes: null })
+      await releaseLockMutation.mutateAsync(grId)
       setExpandedId(null)
 
       toast.success(`Lock released for ${grId}`, {
@@ -386,17 +475,14 @@ export function GoodsReceiptView() {
 
     setLoading(key, true)
     try {
-      await goodsReceiptService.processBlindReceipt(gr.id, {
-        operator_id: operatorId,
-        counts,
+      await processBlindReceiptMutation.mutateAsync({
+        grId: gr.id,
+        payload: {
+          operator_id: operatorId,
+          counts,
+        }
       })
 
-      // Optimistically update GR status to Complete, clear lock
-      updateRow(gr.id, {
-        status:     'Complete',
-        lockedBy:   null,
-        lockMinutes: null,
-      })
       setExpandedId(null)
 
       // Clear form state for this GR
@@ -456,6 +542,9 @@ export function GoodsReceiptView() {
       if (entry) {
         totalReceived  += parseInt(entry.received,  10) || 0
         totalDefective += parseInt(entry.defective, 10) || 0
+      } else {
+        totalReceived  += (li.receivedQty !== undefined && li.receivedQty !== null) ? (li.receivedQty as number) : 0
+        totalDefective += (li.defectiveQty !== undefined && li.defectiveQty !== null) ? (li.defectiveQty as number) : 0
       }
     })
 
@@ -479,7 +568,7 @@ export function GoodsReceiptView() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => { setRows(mockGRs); toast.info('Refreshed') }}
+            onClick={() => { refetchList(); refetchMetrics(); toast.info('Data refreshed') }}
             className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer"
           >
             <RefreshCw size={16} /> Refresh
@@ -496,10 +585,10 @@ export function GoodsReceiptView() {
       {/* ── KPIs ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Pending Receipts',    value: String(rows.filter(r => r.status === 'Pending').length),     color: 'text-mrp-warning', accent: 'border-l-mrp-warning', pulse: true  },
-          { label: 'Completed Today',     value: String(rows.filter(r => r.status === 'Complete').length),    color: 'text-mrp-success', accent: 'border-l-mrp-success', pulse: false },
-          { label: 'Active Discrepancies',value: String(rows.filter(r => r.status === 'Discrepancy').length), color: 'text-mrp-danger',  accent: 'border-l-mrp-danger',  pulse: false },
-          { label: 'Inspection Queue',    value: String(rows.filter(r => r.status === 'Inspected').length),   color: 'text-white',       accent: 'border-l-white',       pulse: false },
+          { label: 'Pending Receipts',    value: String(metrics?.pending_receipts ?? rows.filter(r => r.status === 'Pending').length),     color: 'text-mrp-warning', accent: 'border-l-mrp-warning', pulse: true  },
+          { label: 'Completed Today',     value: String(metrics?.completed_today ?? rows.filter(r => r.status === 'Complete').length),    color: 'text-mrp-success', accent: 'border-l-mrp-success', pulse: false },
+          { label: 'Active Discrepancies',value: String(metrics?.active_discrepancies ?? rows.filter(r => r.status === 'Discrepancy').length), color: 'text-mrp-danger',  accent: 'border-l-mrp-danger',  pulse: false },
+          { label: 'Inspection Queue',    value: String(metrics?.inspection_queue ?? rows.filter(r => r.status === 'Inspected').length),   color: 'text-white',       accent: 'border-l-white',       pulse: false },
         ].map((k) => (
           <div key={k.label} className={`bg-mrp-panel border border-mrp-border p-4 rounded-sm border-l-4 ${k.accent}`}>
             <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">{k.label}</span>
@@ -646,8 +735,16 @@ export function GoodsReceiptView() {
                                     </thead>
                                     <tbody className="divide-y divide-mrp-border">
                                       {gr.lineItems.map((li) => {
-                                        const entry = formStateMap.get(gr.id)?.get(li.sku) ?? { received: '', defective: '', productionDate: '' }
-                                        const isEditable = gr.lockedBy === 'self'
+                                         const dbReceived = li.receivedQty !== undefined && li.receivedQty !== null ? String(li.receivedQty) : ''
+                                         const dbDefective = li.defectiveQty !== undefined && li.defectiveQty !== null ? String(li.defectiveQty) : ''
+                                         const dbProdDate = li.productionDate ? String(li.productionDate).split('T')[0] : ''
+                                         
+                                         const entry = formStateMap.get(gr.id)?.get(li.sku) ?? { 
+                                           received: dbReceived, 
+                                           defective: dbDefective, 
+                                           productionDate: dbProdDate 
+                                         }
+                                         const isEditable = gr.lockedBy === 'self'
 
                                         return (
                                           <tr key={li.sku} className="bg-mrp-app">
@@ -776,25 +873,52 @@ export function GoodsReceiptView() {
                   </React.Fragment>
                 )
               })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-mrp-text-muted">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <ShieldAlert size={36} className="opacity-40 text-mrp-text-muted" />
+                      <span className="text-[14px] font-semibold text-white">No goods receipts found</span>
+                      <span className="text-[11px] opacity-60">There are no records matching the selected status filter.</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
         <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
-          <span className="text-[13px] text-mrp-text-muted">Showing 1-{filtered.length} of {filtered.length} Goods Receipts</span>
+          <span className="text-[13px] text-mrp-text-muted">
+            Showing {filtered.length > 0 ? (page - 1) * limit + 1 : 0}-{(page - 1) * limit + filtered.length} of {totalRows} Goods Receipts
+          </span>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-[13px] text-mrp-text-muted">Rows per page:</span>
-              <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
-                <option>10</option><option>20</option><option>50</option>
+              <select
+                value={limit}
+                onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+                className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
               </select>
             </div>
             <div className="flex items-center gap-1">
-              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page <= 1}
+                className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
                 <ChevronLeft size={16} />
               </button>
-              <button className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer" disabled>
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page >= totalPages}
+                className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              >
                 <ChevronRight size={16} />
               </button>
             </div>
