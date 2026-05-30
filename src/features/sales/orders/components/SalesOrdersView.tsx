@@ -112,7 +112,6 @@ export function SalesOrdersView() {
         <p className="text-sm text-mrp-text-secondary mt-1">Monitor inbound client demand, track lifecycle states, and resolve concurrency locks.</p>
       </div>
 
-      {/* KPI METRICS TỪ API */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-mrp-panel border border-mrp-border p-4 rounded-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -152,6 +151,7 @@ export function SalesOrdersView() {
               <option value="PROCESSING" className="bg-mrp-panel">Processing</option>
               <option value="DELIVERING" className="bg-mrp-panel">Delivering</option>
               <option value="COMPLETED" className="bg-mrp-panel">Completed</option>
+              <option value="CANCELLED" className="bg-mrp-panel">Cancelled</option>
             </select>
           </div>
         </div>
@@ -177,7 +177,9 @@ export function SalesOrdersView() {
                 const cfg = statusConfig[order.status] || statusConfig['PENDING']
                 return (
                   <tr key={order.orderId} onClick={() => handleSelectOrder(order)} className="hover:bg-mrp-panel transition-colors cursor-pointer group">
-                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary group-hover:underline truncate max-w-[120px]">{order.orderId}</td>
+                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary group-hover:underline truncate max-w-[120px]">
+                      ORD-{String(order.orderId).substring(0, 6).toUpperCase()}
+                    </td>
                     <td className="py-3 px-4 text-[13px] text-white font-medium">{order.clientName}</td>
                     <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-secondary">{new Date(order.requiredDate).toLocaleDateString()}</td>
                     <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{formatCurrency(order.totalValue)}</td>
@@ -205,7 +207,7 @@ export function SalesOrdersView() {
               <div className="min-w-0 pr-4">
                 <div className="flex items-center gap-3 mb-1">
                   <h2 className="text-xl font-bold text-white font-mono truncate">
-                    {String(selectedOrder.orderId || '').substring(0,8)}...
+                    ORD-{String(selectedOrder.orderId).substring(0, 6).toUpperCase()}
                   </h2>
                   <div className={`inline-flex shrink-0 items-center gap-1.5 ${statusConfig[selectedOrder.status]?.bg} border ${statusConfig[selectedOrder.status]?.border} ${statusConfig[selectedOrder.status]?.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}>
                     {statusConfig[selectedOrder.status]?.label}
