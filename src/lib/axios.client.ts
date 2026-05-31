@@ -125,6 +125,7 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`);
     }
+
     return config;
   },
   (error: AxiosError) => Promise.reject(error),
@@ -298,4 +299,23 @@ export function apiDelete<T>(
   config?: AxiosRequestConfig,
 ): Promise<ApiResponse<T>> {
   return apiClient.delete(url, config) as unknown as Promise<ApiResponse<T>>;
+}
+
+/**
+ * Helper to download a file from an authenticated endpoint
+ * Uses the apiClient to attach auth tokens, requests a blob, and triggers a download.
+ */
+export async function downloadFile(url: string, filename: string): Promise<void> {
+  const response = await apiClient.get(url, { responseType: 'blob' })
+  // The success interceptor unwraps `response.data`.
+  // When responseType is 'blob', `response.data` is the Blob itself.
+  const blob = response as unknown as Blob
+  const blobUrl = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(blobUrl)
 }

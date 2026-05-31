@@ -96,6 +96,7 @@ export async function login(
   const response = await apiPost<LoginData>(
     "/system/auth/login",
     credentials,
+    { withCredentials: true },
   );
 
   if (response.data) {
@@ -125,7 +126,7 @@ export async function login(
  */
 export async function logout(): Promise<void> {
   try {
-    await apiPost<null>("/system/auth/logout");
+    await apiPost<null>("/system/auth/logout", {}, { withCredentials: true });
   } finally {
     // Always clear regardless of server response
     clearAuth();
@@ -147,7 +148,7 @@ export async function logout(): Promise<void> {
  * @returns Full TokenPair with new access_token (refresh_token rotated via cookie).
  */
 export async function refreshSession(): Promise<ApiResponse<TokenPair>> {
-  const response = await apiPost<TokenPair>("/system/auth/refresh", {});
+  const response = await apiPost<TokenPair>("/system/auth/refresh", {}, { withCredentials: true });
 
   if (response.data) {
     setAccessToken(response.data.access_token);

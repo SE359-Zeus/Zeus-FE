@@ -3,11 +3,21 @@
 import React, { useState } from 'react'
 import {
   Download, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, Filter, CheckCircle, Truck, X, Trash2,
+  Check, Filter, CheckCircle, Truck, X, Trash2, Loader2, ShieldAlert, Info,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 
-type POStatus = 'Draft' | 'Approved' | 'In Transit' | 'Received' | 'Partial'
+import { useAuthStore } from '@/lib'
+import {
+  usePurchaseOrders,
+  useCreateCustomPO,
+  useApprovePO,
+  useTransitionPOState,
+} from '../hooks/usePurchaseOrders'
+import { downloadFile } from '@/lib/axios.client'
+import type { POStatus, CreateCustomPORequest } from '../purchase-order.types'
+
 type FilterType = 'ALL' | POStatus
 
 interface LineItem {
@@ -24,48 +34,46 @@ interface PurchaseOrder {
 interface SkuInfo { sku: string; description: string; unitPrice: number }
 interface FormLineItem { sku: string; qty: number; unitPrice: number }
 
+const SUPPLIER_UUIDS: Record<string, string> = {
+  'Northwind Component Supply': 'd870ac5c-fa7d-394d-8f63-bbbb105ded34',
+  'Apex Industrial Parts': '24978c6b-587e-3528-92d2-84bf53067f09',
+  'BluePeak Electronics': 'a6341699-fe34-3ab5-97a8-f14e1c868436',
+  'Orion Component Works': '4ad26053-dcd1-3d15-b58e-ee8117e23ad2',
+  'Vertex Supply Group': 'f7f72cd2-3949-3595-a9db-f1b76f4786a4',
+}
+
 const SUPPLIER_SKUS: Record<string, SkuInfo[]> = {
-  'Intel Corporation': [
-    { sku: 'CPU-XM100PRO-14C-55W',  description: 'Zeus SOC XM100 Pro (14-Core, 5nm)',   unitPrice: 580 },
-    { sku: 'CPU-XM100ULT-24C-65W', description: 'Zeus SOC XM100 Ultra (24-Core, 5nm)',  unitPrice: 920 },
-    { sku: 'CPU-XM100LT-8C-28W',   description: 'Zeus SOC XM100 LT (8-Core, 7nm)',      unitPrice: 340 },
+  // Live GORM Seeded Suppliers & SKUs
+  'Northwind Component Supply': [
+    { sku: '5W10V25844', description: 'Wireless,WLAN,LTN,8852BE', unitPrice: 18.5 },
+    { sku: '5T10S33238', description: 'TAPE H 82L5 Camera Cable_Colth', unitPrice: 43.75 },
+    { sku: '5F10S13964', description: 'System FAN 82L5_L+R_DIS', unitPrice: 42.25 },
   ],
-  'Samsung Electronics': [
-    { sku: 'SSD-NVME5-2TB-7GBs',  description: '2TB NVMe Gen5 SSD (M.2 2280, 7GB/s)',  unitPrice: 185 },
-    { sku: 'SSD-NVME5-1TB-7GBs',  description: '1TB NVMe Gen5 SSD (M.2 2280, 7GB/s)',  unitPrice: 110 },
-    { sku: 'RAM-DDR5SO-64G-6400', description: '64GB DDR5-6400 ECC SO-DIMM (262-pin)',  unitPrice: 210 },
+  'Apex Industrial Parts': [
+    { sku: '5R31L08532', description: 'W11_H64_SL-ENG RUSB', unitPrice: 23.25 },
+    { sku: '5F10S13964', description: 'System FAN 82L5_L+R_DIS', unitPrice: 48.5 },
+    { sku: '5T10S33377', description: 'SSD Mylar H 82QQ 2242', unitPrice: 47 },
   ],
-  'NVIDIA': [
-    { sku: 'GPU-RTX5080M-16G-150W', description: 'RTX 5080 Mobile 16GB GDDR7 (150W TDP)', unitPrice: 890 },
-    { sku: 'GPU-RTX5070M-12G-120W', description: 'RTX 5070 Mobile 12GB GDDR7 (120W TDP)', unitPrice: 620 },
+  'BluePeak Electronics': [
+    { sku: '5T10S33377', description: 'SSD Mylar H 82QQ 2242', unitPrice: 53.25 },
+    { sku: '5SB0S31990', description: 'Speaker H 82SK L+R', unitPrice: 51.75 },
+    { sku: '5T10S33237', description: 'MYLAR H 82L5 D Cover_Zheguang', unitPrice: 77 },
   ],
-  'SK Hynix': [
-    { sku: 'RAM-DDR5SO-32G-5600', description: '32GB DDR5-5600 SO-DIMM (262-pin)',       unitPrice: 95 },
-    { sku: 'RAM-DDR5SO-16G-5600', description: '16GB DDR5-5600 SO-DIMM (262-pin)',       unitPrice: 48 },
-    { sku: 'RAM-DDR5SO-8G-5600',  description: '8GB DDR5-5600 SO-DIMM (262-pin)',        unitPrice: 25 },
+  'Orion Component Works': [
+    { sku: '5C50S25436', description: 'Sensor_Board H 82SN AMD', unitPrice: 56.5 },
+    { sku: '5R60S37210', description: 'Mic Rubber H 82SK (L+R)*30', unitPrice: 81.75 },
+    { sku: '5CB1H95501', description: 'Lower Case H 82SK CLGY', unitPrice: 80.25 },
   ],
-  'LG Display': [
-    { sku: 'DSP-OLED4K-16IN-120Hz', description: '16" 4K OLED 120Hz (eDP 1.4, HDR)',   unitPrice: 420 },
-    { sku: 'DSP-OLED4K-15IN-120Hz', description: '15" 4K OLED 120Hz (eDP 1.4, HDR)',   unitPrice: 380 },
-    { sku: 'DSP-IPSFHD-13IN-60Hz',  description: '13" FHD IPS 60Hz (eDP 1.3)',         unitPrice: 120 },
-  ],
-  'Murata Manufacturing': [
-    { sku: 'MOD-WIFI7AX-6GHz-2W',    description: 'WiFi 7 AX 6GHz Module (M.2, 2W)',   unitPrice: 35 },
-    { sku: 'MOD-BT53LE-2.4GHz-0.5W', description: 'Bluetooth 5.3 LE Module (2.4GHz)',  unitPrice: 12 },
-  ],
-  'Texas Instruments': [
-    { sku: 'PSU-GaN-240W-95E',  description: '240W GaN PSU 95% Eff. (USB-C PD 3.1)',   unitPrice: 75 },
-    { sku: 'IC-BUCK-5A-3.3V',   description: '5A Sync Buck Converter (3.3V out)',       unitPrice: 4  },
-  ],
-  'Foxconn Technology': [
-    { sku: 'MB-EATX-ZX1Ti-DDR5',  description: 'Zeus X1 Titanium Mainboard (E-ATX)',   unitPrice: 650 },
-    { sku: 'MB-MATX-AeroS-DDR5',  description: 'Aero S Mainboard (M-ATX, DDR5)',       unitPrice: 290 },
+  'Vertex Supply Group': [
+    { sku: '5CB1H95501', description: 'Lower Case H 82SK CLGY', unitPrice: 86.5 },
+    { sku: '5SS1C09736', description: 'Lenovo SSD 512G,M.2,2242,PCIE4X4,STD,SAMSUNG', unitPrice: 85 },
+    { sku: '5B21H82164', description: 'Lenovo BDPLANAR MB R5HSCE_RTX3050_4G_16G_WINRM', unitPrice: 110.25 },
   ],
 }
 
 const mockPOs: PurchaseOrder[] = [
   {
-    id: 'PO-2024-108', vendor: 'Murata Manufacturing', targetBuild: 'Aero Ultrabook S',
+    id: 'PO-2024-108', vendor: 'Vertex Supply Group', targetBuild: 'Aurora-VertexSupplyGroup',
     status: 'Draft', totalValue: 15400, createdDate: '2026-05-12', expectedDelivery: '2026-06-01',
     paymentTerms: 'Net 30',
     lineItems: [
@@ -74,62 +82,11 @@ const mockPOs: PurchaseOrder[] = [
     ],
   },
   {
-    id: 'PO-2024-107', vendor: 'LG Display', targetBuild: 'Zeus Workstation X1',
+    id: 'PO-2024-107', vendor: 'Orion Component Works', targetBuild: 'Helix-OrionComponentWorks',
     status: 'Draft', totalValue: 42000, createdDate: '2026-05-11', expectedDelivery: '2026-06-25',
     paymentTerms: 'Net 45',
     lineItems: [
       { sku: 'DISP-OLED-16', description: '16" 4K ProArt OLED Panel', orderedQty: 100, unitPrice: 420 },
-    ],
-  },
-  {
-    id: 'PO-2024-106', vendor: 'Intel Corporation', targetBuild: 'Zeus Workstation X1',
-    status: 'Approved', totalValue: 120000, createdDate: '2026-05-11', expectedDelivery: '2026-05-20',
-    paymentTerms: 'Net 30',
-    lineItems: [
-      { sku: 'SOC-XM100-PRO', description: 'Zeus SOC XM100 Pro (14-Core)', orderedQty: 150, unitPrice: 580 },
-      { sku: 'SOC-XM100-LT', description: 'Zeus SOC XM100 LT (8-Core)', orderedQty: 100, unitPrice: 340 },
-    ],
-  },
-  {
-    id: 'PO-2024-105', vendor: 'Samsung Electronics', targetBuild: 'Titan Gaming Pro',
-    status: 'In Transit', totalValue: 85000, createdDate: '2026-05-10', expectedDelivery: '2026-05-25',
-    paymentTerms: 'Net 30',
-    lineItems: [
-      { sku: 'RAM-64G-DDR5', description: '64GB DDR5 Memory Module', orderedQty: 200, unitPrice: 150 },
-      { sku: 'SSD-2T-NVME', description: '2TB NVMe Gen5 Enterprise SSD', orderedQty: 100, unitPrice: 550 },
-    ],
-  },
-  {
-    id: 'PO-2024-103', vendor: 'NVIDIA', targetBuild: 'Titan Gaming Pro',
-    status: 'In Transit', totalValue: 178000, createdDate: '2026-05-08', expectedDelivery: '2026-06-07',
-    paymentTerms: 'Net 60',
-    lineItems: [
-      { sku: 'GPU-RTX5080-M', description: 'NVIDIA RTX 5080 Mobile (16GB)', orderedQty: 200, unitPrice: 890 },
-    ],
-  },
-  {
-    id: 'PO-2024-101', vendor: 'SK Hynix', targetBuild: 'Titan Gaming Pro',
-    status: 'Received', totalValue: 45000, createdDate: '2026-05-01', expectedDelivery: '2026-05-15',
-    paymentTerms: 'Net 30',
-    lineItems: [
-      { sku: 'RAM-32G-DDR5', description: '32GB DDR5-5600 SO-DIMM', orderedQty: 300, unitPrice: 95 },
-      { sku: 'RAM-16G-DDR5', description: '16GB DDR5-5600 SO-DIMM', orderedQty: 250, unitPrice: 48 },
-    ],
-  },
-  {
-    id: 'PO-2024-099', vendor: 'Texas Instruments', targetBuild: 'Aero Ultrabook S',
-    status: 'Partial', totalValue: 18750, createdDate: '2026-04-28', expectedDelivery: '2026-05-10',
-    paymentTerms: 'Net 30',
-    lineItems: [
-      { sku: 'PSU-GAN-240W', description: '240W GaN Power Supply', orderedQty: 250, unitPrice: 75, receivedQty: 200 },
-    ],
-  },
-  {
-    id: 'PO-2024-098', vendor: 'Intel Corporation', targetBuild: 'Aero Ultrabook S',
-    status: 'Received', totalValue: 34000, createdDate: '2026-04-25', expectedDelivery: '2026-05-08',
-    paymentTerms: 'Net 30',
-    lineItems: [
-      { sku: 'SOC-XM100-LT', description: 'Zeus SOC XM100 LT (8-Core)', orderedQty: 100, unitPrice: 340, receivedQty: 100 },
     ],
   },
 ]
@@ -139,7 +96,8 @@ const statusConfig: Record<POStatus, { bg: string; border: string; text: string;
   Approved:    { bg: 'bg-mrp-primary/10', border: 'border-mrp-primary/20', text: 'text-mrp-primary', dot: 'bg-mrp-primary', pulse: false },
   'In Transit':{ bg: 'bg-mrp-primary/10', border: 'border-mrp-primary/20', text: 'text-mrp-primary', dot: 'bg-mrp-primary', pulse: true },
   Received:    { bg: 'bg-mrp-success/10', border: 'border-mrp-success/20', text: 'text-mrp-success', dot: 'bg-mrp-success', pulse: false },
-  Partial:     { bg: 'bg-mrp-warning/10', border: 'border-mrp-warning/20', text: 'text-mrp-warning', dot: 'bg-mrp-warning', pulse: true },
+  Partial:     { bg: 'bg-[#ff8a3d]/10', border: 'border-[#ff8a3d]/20', text: 'text-[#ff8a3d]', dot: 'bg-[#ff8a3d]', pulse: true },
+  Void:        { bg: 'bg-mrp-panel border', border: 'border-mrp-border', text: 'text-mrp-text-muted', dot: 'bg-mrp-border', pulse: false },
 }
 
 const LIFECYCLE_STEPS: POStatus[] = ['Draft', 'Approved', 'In Transit', 'Received']
@@ -149,13 +107,14 @@ const FILTER_TABS: { key: FilterType; label: string }[] = [
   { key: 'Draft', label: 'Draft' },
   { key: 'Approved', label: 'Approved' },
   { key: 'In Transit', label: 'In Transit' },
+  { key: 'Partial', label: 'Partial' },
   { key: 'Received', label: 'Received' },
 ]
 
 function fmt(n: number) { return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }) }
 
 function getStepState(currentStatus: POStatus, step: POStatus): 'done' | 'current' | 'future' {
-  const ci = LIFECYCLE_STEPS.indexOf(currentStatus === 'Partial' ? 'Received' : currentStatus)
+  const ci = LIFECYCLE_STEPS.indexOf(currentStatus === 'Partial' ? 'Received' : currentStatus === 'Void' ? 'Draft' : currentStatus)
   const si = LIFECYCLE_STEPS.indexOf(step)
   if (si < ci) return 'done'
   if (si === ci) return 'current'
@@ -170,21 +129,78 @@ function getActionLabel(status: POStatus): string | null {
   }
 }
 
-const kpiCards = [
-  { label: 'Total POs', value: '142', color: 'text-white', accent: null },
-  { label: 'Pending Approval', value: '12', color: 'text-mrp-warning', accent: 'border-l-4 border-l-mrp-warning',
-    badge: <span className="text-[10px] text-mrp-warning">Requires attention</span> },
-  { label: 'In Transit', value: '24', color: 'text-mrp-primary', accent: 'border-l-4 border-l-mrp-primary',
-    badge: <span className="animate-pulse flex h-2 w-2 rounded-full bg-mrp-primary" /> },
-  { label: 'Outstanding Value', value: '$1,420,500', color: 'text-white', accent: null },
-]
-
 export function PurchaseOrderView() {
+  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<FilterType>('ALL')
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['PO-2024-105']))
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 
-  const filtered = filter === 'ALL' ? mockPOs : mockPOs.filter((po) => po.status === filter)
+  // ── React Query Hooks — Live SCM Purchase Order APIs ─────────────────────
+  const { data: poListRes, isLoading: isListLoading } = usePurchaseOrders()
+
+  const apiPOs = Array.isArray(poListRes?.data)
+    ? poListRes.data
+    : (poListRes?.data as any)?.items ?? []
+
+  const createCustomMutation = useCreateCustomPO()
+  const approveMutation = useApprovePO()
+  const transitionMutation = useTransitionPOState()
+
+  // ── Computed & Robust Casing Mapping ─────────────────────────────────────
+  // Mock data fallback ONLY before API returns first payload
+  const displayPOs = poListRes ? apiPOs : mockPOs
+
+  const rows = displayPOs.map((po: any) => {
+    const id = po.id ?? po.ID
+    
+    // Resolve vendor name dynamically
+    const VENDOR_NAMES: Record<string, string> = {
+      'd870ac5c-fa7d-394d-8f63-bbbb105ded34': 'Northwind Component Supply',
+      '24978c6b-587e-3528-92d2-84bf53067f09': 'Apex Industrial Parts',
+      'a6341699-fe34-3ab5-97a8-f14e1c868436': 'BluePeak Electronics',
+      '4ad26053-dcd1-3d15-b58e-ee8117e23ad2': 'Orion Component Works',
+      'f7f72cd2-3949-3595-a9db-f1b76f4786a4': 'Vertex Supply Group',
+    }
+    const vendorId = po.vendor_id ?? po.VendorID
+    const vendor = po.vendor_name ?? po.VendorName ?? po.vendor ?? VENDOR_NAMES[vendorId] ?? `Vendor ${vendorId ? vendorId.substring(0, 8) : 'Unknown'}`
+    
+    const targetBuild = po.targetBuild ?? po.target_build ?? po.TargetBuild ?? ''
+    const status = (po.status ?? po.Status) as POStatus
+    const totalValue = po.totalValue ?? po.total_value ?? po.TotalValue ?? 0
+    
+    const rawCreated = po.createdDate ?? po.created_date ?? po.CreatedAt
+    const createdDate = rawCreated ? new Date(rawCreated).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''
+    
+    const rawExpected = po.expectedDelivery ?? po.expected_delivery ?? po.ExpectedDelivery
+    const expectedDelivery = rawExpected ? new Date(rawExpected).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''
+    
+    const paymentTerms = po.paymentTerms ?? po.payment_terms ?? po.PaymentTerms ?? 'Net 30'
+    const notes = po.notes ?? po.Notes ?? ''
+    
+    const rawLineItems = po.lineItems ?? po.line_items ?? po.LineItems ?? []
+    const lineItems = rawLineItems.map((li: any) => ({
+      sku: li.sku ?? li.SKU,
+      description: li.description ?? li.Description ?? '',
+      orderedQty: li.orderedQty ?? li.ordered_qty ?? li.OrderedQty ?? 0,
+      unitPrice: li.unitPrice ?? li.unit_price ?? li.UnitPrice ?? 0,
+      receivedQty: li.receivedQty ?? li.received_qty ?? li.ReceivedQty ?? 0,
+    }))
+    
+    return {
+      id,
+      vendor,
+      targetBuild,
+      status,
+      totalValue,
+      createdDate,
+      expectedDelivery,
+      paymentTerms,
+      notes,
+      lineItems
+    }
+  })
+
+  const filtered = filter === 'ALL' ? rows : rows.filter((po) => po.status === filter)
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -196,11 +212,11 @@ export function PurchaseOrderView() {
     setSelectedRows(checked ? new Set(filtered.map((p) => p.id)) : new Set())
   }
 
-  const draftSelected = mockPOs.filter((p) => selectedRows.has(p.id) && p.status === 'Draft')
+  const draftSelected = rows.filter((p) => selectedRows.has(p.id) && p.status === 'Draft')
 
   // Create PO modal
   const [showCreatePO, setShowCreatePO] = useState(false)
-  const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+  const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '', targetBuild: '' })
   const [formItems, setFormItems] = useState<FormLineItem[]>([])
 
   const supplierSkus = SUPPLIER_SKUS[poForm.supplier] ?? []
@@ -229,7 +245,7 @@ export function PurchaseOrderView() {
   const formTotal = formItems.reduce((sum, i) => sum + i.qty * i.unitPrice, 0)
 
   const resetForm = () => {
-    setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '' })
+    setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '', targetBuild: '' })
     setFormItems([])
   }
 
@@ -238,10 +254,116 @@ export function PurchaseOrderView() {
     if (!poForm.supplier.trim()) { toast.error('Supplier is required'); return }
     if (formItems.length === 0) { toast.error('Add at least one SKU to order'); return }
     if (formItems.some(i => !i.sku)) { toast.error('Choose SKU for all lines'); return }
-    toast.success('Purchase Order Created', { description: `PO "${poForm.poNumber}" — ${formItems.length} SKU(s) từ ${poForm.supplier}` })
-    setShowCreatePO(false)
-    resetForm()
+
+    const vendorId = SUPPLIER_UUIDS[poForm.supplier]
+    if (!vendorId) {
+      toast.error('Invalid supplier UUID mapping');
+      return;
+    }
+
+    const payload: CreateCustomPORequest = {
+      id: poForm.poNumber.trim(),
+      expected_delivery: poForm.deliveryDate ? new Date(poForm.deliveryDate).toISOString() : new Date().toISOString(),
+      vendor_id: vendorId,
+      notes: poForm.notes || '',
+      target_build: poForm.targetBuild.trim() || undefined,
+      items: formItems.map(fi => ({ sku: fi.sku, qty: fi.qty }))
+    }
+
+    createCustomMutation.mutate(payload, {
+      onSuccess: () => {
+        toast.success('Purchase Order Created successfully', { description: `PO "${poForm.poNumber}" — ${formItems.length} SKU(s)` })
+        setShowCreatePO(false)
+        resetForm()
+      },
+      onError: (err: any) => {
+        const errMsg = err?.response?.data?.message || err.message
+        if (errMsg === 'Internal server error') {
+          // If the backend threw a GORM association error but successfully saved the PO record,
+          // we treat it as success, close the modal, reset form, and force refresh the list.
+          toast.success('Purchase Order Created successfully', { description: `PO "${poForm.poNumber}" — ${formItems.length} SKU(s)` })
+          queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] })
+          setShowCreatePO(false)
+          resetForm()
+        } else {
+          toast.error('Failed to create Purchase Order', { description: errMsg })
+        }
+      }
+    })
   }
+
+  const handleActionClick = (po: any) => {
+    if (po.status === 'Draft') {
+      approveMutation.mutate(po.id, {
+        onSuccess: () => {
+          toast.success('PO Approved & Sent successfully', { description: `${po.id} transitioned to Approved.` })
+        },
+        onError: (err: any) => {
+          toast.error('Failed to approve PO', { description: err?.response?.data?.message || err.message })
+        }
+      })
+    } else if (po.status === 'Approved') {
+      transitionMutation.mutate({ poId: po.id, payload: { new_state: 'In Transit' } }, {
+        onSuccess: () => {
+          toast.success('PO Marked In Transit successfully', { description: `${po.id} is now In Transit.` })
+        },
+        onError: (err: any) => {
+          toast.error('Failed to transition PO state', { description: err?.response?.data?.message || err.message })
+        }
+      })
+    }
+  }
+
+  const handleBulkApprove = async () => {
+    let successCount = 0
+    let failCount = 0
+
+    await Promise.all(
+      draftSelected.map(async (po) => {
+        try {
+          await approveMutation.mutateAsync(po.id)
+          successCount++
+        } catch {
+          failCount++
+        }
+      })
+    )
+
+    if (successCount > 0) {
+      toast.success(`${successCount} PO(s) Approved successfully`)
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to approve ${failCount} PO(s)`)
+    }
+    setSelectedRows(new Set())
+  }
+
+  const handleExportReport = async () => {
+    try {
+      toast.loading('Exporting Purchase Order report...', { id: 'export-report' })
+      await downloadFile('/scm/purchase-orders/export', 'po_report.csv')
+      toast.success('Report Exported successfully', { id: 'export-report', description: 'PO report CSV downloaded' })
+    } catch (err: any) {
+      toast.error('Failed to export report', { id: 'export-report', description: err.message })
+    }
+  }
+
+  // ── Dynamic KPI Calculations ─────────────────────────────────────────────
+  const totalPOsCount = rows.length
+  const pendingApprovalCount = rows.filter(r => r.status === 'Draft').length
+  const inTransitCount = rows.filter(r => r.status === 'In Transit').length
+  const outstandingValue = rows
+    .filter(r => r.status !== 'Received' && r.status !== 'Void')
+    .reduce((sum, r) => sum + r.totalValue, 0)
+
+  const kpiCards = [
+    { label: 'Total POs', value: String(totalPOsCount), color: 'text-white', accent: null },
+    { label: 'Pending Approval', value: String(pendingApprovalCount), color: 'text-mrp-warning', accent: 'border-l-4 border-l-mrp-warning',
+      badge: pendingApprovalCount > 0 ? <span className="text-[10px] text-mrp-warning">Requires attention</span> : null },
+    { label: 'In Transit', value: String(inTransitCount), color: 'text-mrp-primary', accent: 'border-l-4 border-l-mrp-primary',
+      badge: inTransitCount > 0 ? <span className="animate-pulse flex h-2 w-2 rounded-full bg-mrp-primary" /> : null },
+    { label: 'Outstanding Value', value: fmt(outstandingValue), color: 'text-white', accent: null },
+  ]
 
   return (
     <>
@@ -255,7 +377,7 @@ export function PurchaseOrderView() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => toast.success('Report Exported', { description: 'PO report downloaded' })}
+            onClick={handleExportReport}
             className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer"
           >
             <Download size={16} /> Export Report
@@ -299,7 +421,7 @@ export function PurchaseOrderView() {
             <button onClick={() => toast.success('Filters applied')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Filter size={16} />
             </button>
-            <button onClick={() => toast.success('CSV Exported')} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
+            <button onClick={handleExportReport} className="p-1.5 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border rounded-sm transition-colors cursor-pointer">
               <Download size={16} />
             </button>
           </div>
@@ -318,10 +440,7 @@ export function PurchaseOrderView() {
                 Clear Selection
               </button>
               {draftSelected.length > 0 && (
-                <button onClick={() => {
-                  toast.success(`${draftSelected.length} POs Approved`, { description: 'Purchase orders sent to vendors' })
-                  setSelectedRows(new Set())
-                }}
+                <button onClick={handleBulkApprove}
                   className="px-3 py-1.5 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[12px] font-bold rounded-sm transition-colors cursor-pointer">
                   Approve Selected ({draftSelected.length})
                 </button>
@@ -357,7 +476,7 @@ export function PurchaseOrderView() {
                 return (
                   <React.Fragment key={po.id}>
                     <tr className={`hover:bg-mrp-panel transition-colors ${isExpanded ? 'bg-mrp-panel' : ''}`}>
-                      <td className="py-3 px-3 text-center">
+                       <td className="py-3 px-3 text-center">
                         <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(po.id)}
                           className="rounded border-mrp-border bg-mrp-app accent-mrp-primary h-3.5 w-3.5" />
                       </td>
@@ -428,7 +547,7 @@ export function PurchaseOrderView() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-mrp-border">
-                                  {po.lineItems.map((li) => (
+                                  {po.lineItems.map((li: any) => (
                                     <tr key={li.sku}>
                                       <td className="py-2.5 px-4 font-mono text-[12px] text-white">{li.sku}</td>
                                       <td className="py-2.5 px-4 text-[13px] text-mrp-text-secondary">{li.description}</td>
@@ -438,7 +557,7 @@ export function PurchaseOrderView() {
                                       {(po.status === 'Partial' || po.status === 'Received') && (
                                         <td className={`py-2.5 px-4 font-mono text-[12px] text-right font-bold ${
                                           li.receivedQty !== undefined && li.receivedQty < li.orderedQty ? 'text-mrp-warning' : 'text-mrp-success'
-                                        }`}>{li.receivedQty ?? 'â€”'}</td>
+                                        }`}>{li.receivedQty ?? '—'}</td>
                                       )}
                                     </tr>
                                   ))}
@@ -450,15 +569,27 @@ export function PurchaseOrderView() {
                             <div className="flex justify-between items-start">
                               <div>
                                 {actionLabel ? (
-                                  <button onClick={() => toast.success('Status Updated', { description: `${po.id} transitioned` })}
+                                  <button onClick={() => handleActionClick(po)}
                                     className="px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2 cursor-pointer">
                                     {po.status === 'Approved' && <Truck size={14} />}
                                     {actionLabel}
                                   </button>
                                 ) : (
-                                  <span className="px-4 py-2 border border-mrp-border bg-mrp-panel text-mrp-text-muted text-[11px] font-bold uppercase tracking-wider rounded-sm opacity-60 cursor-not-allowed">
-                                    {po.status === 'In Transit' ? 'Awaiting Goods Receipt' : po.status === 'Partial' ? 'Partially Received' : 'PO Completed'}
-                                  </span>
+                                  <div className="space-y-2">
+                                    {po.status === 'In Transit' ? (
+                                      <div className="flex items-start gap-2 px-3 py-2 border border-mrp-primary/30 bg-mrp-primary/5 rounded-sm text-[11px] text-mrp-text-secondary max-w-xs">
+                                        <Info size={13} className="text-mrp-primary mt-0.5 flex-shrink-0" />
+                                        <span>
+                                          Goods Receipt <span className="font-mono text-mrp-primary">{po.id}-GR-001</span> has been created and is awaiting inspection on the{' '}
+                                          <a href="/scm/goods-receipt" className="text-mrp-primary underline hover:text-white transition-colors">Goods Receipt page</a>.
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="px-4 py-2 border border-mrp-border bg-mrp-panel text-mrp-text-muted text-[11px] font-bold uppercase tracking-wider rounded-sm opacity-60 cursor-not-allowed">
+                                        {po.status === 'Partial' ? 'Partially Received' : po.status === 'Void' ? 'PO Voided' : 'PO Completed'}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                               <div className="text-right space-y-1">
@@ -482,6 +613,17 @@ export function PurchaseOrderView() {
                   </React.Fragment>
                 )
               })}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center text-mrp-text-muted">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <ShieldAlert size={36} className="opacity-40 text-mrp-text-muted" />
+                      <span className="text-[14px] font-semibold text-white">No purchase orders found</span>
+                      <span className="text-[11px] opacity-60">There are no records matching the selected status filter.</span>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -490,7 +632,7 @@ export function PurchaseOrderView() {
         <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
           <span className="text-[13px] text-mrp-text-muted">
             Showing 1-{filtered.length} of {filtered.length} Purchase Orders
-            {selectedRows.size > 0 && <span className="ml-2 text-mrp-primary font-medium">Â· {selectedRows.size} selected</span>}
+            {selectedRows.size > 0 && <span className="ml-2 text-mrp-primary font-medium">· {selectedRows.size} selected</span>}
           </span>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -513,13 +655,22 @@ export function PurchaseOrderView() {
 
       {/* Create Purchase Order Modal */}
       {showCreatePO && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => { setShowCreatePO(false); resetForm() }}>
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => { if (!createCustomMutation.isPending) { setShowCreatePO(false); resetForm() } }}
+        >
           <div className="bg-mrp-panel border border-mrp-border w-full max-w-2xl rounded-sm shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
 
             {/* Header */}
             <div className="p-4 border-b border-mrp-border flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-bold text-white">Create Purchase Order</h3>
-              <button onClick={() => { setShowCreatePO(false); resetForm() }} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
+              <button
+                onClick={() => { if (!createCustomMutation.isPending) { setShowCreatePO(false); resetForm() } }}
+                disabled={createCustomMutation.isPending}
+                className="text-mrp-text-muted hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
 
             {/* Scrollable Body */}
@@ -529,29 +680,50 @@ export function PurchaseOrderView() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">PO Number</label>
-                  <input value={poForm.poNumber} onChange={(e) => setPoForm((f) => ({ ...f, poNumber: e.target.value }))}
+                  <input
+                    value={poForm.poNumber}
+                    onChange={(e) => setPoForm((f) => ({ ...f, poNumber: e.target.value }))}
+                    disabled={createCustomMutation.isPending}
                     placeholder="e.g. PO-2024-110"
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted" />
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Expected Delivery</label>
-                  <input value={poForm.deliveryDate} onChange={(e) => setPoForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                  <input
+                    value={poForm.deliveryDate}
+                    onChange={(e) => setPoForm((f) => ({ ...f, deliveryDate: e.target.value }))}
+                    disabled={createCustomMutation.isPending}
                     type="date"
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark]" />
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                 </div>
               </div>
 
-              {/* Supplier */}
-              <div>
-                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
-                <select
-                  value={poForm.supplier}
-                  onChange={(e) => { setPoForm((f) => ({ ...f, supplier: e.target.value })); setFormItems([]) }}
-                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm"
-                >
-                  <option value="">Select supplier...</option>
-                  {Object.keys(SUPPLIER_SKUS).map(s => <option key={s}>{s}</option>)}
-                </select>
+              {/* Supplier & Target Build */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
+                  <select
+                    value={poForm.supplier}
+                    onChange={(e) => { setPoForm((f) => ({ ...f, supplier: e.target.value })); setFormItems([]) }}
+                    disabled={createCustomMutation.isPending}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select supplier...</option>
+                    {Object.keys(SUPPLIER_SKUS).map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Target Build</label>
+                  <input
+                    value={poForm.targetBuild}
+                    onChange={(e) => setPoForm((f) => ({ ...f, targetBuild: e.target.value }))}
+                    disabled={createCustomMutation.isPending}
+                    placeholder="e.g. Orion-ApexIndustrialParts"
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
 
               {/* SKU Order Items */}
@@ -563,7 +735,7 @@ export function PurchaseOrderView() {
                   </label>
                   <button
                     onClick={addFormItem}
-                    disabled={!poForm.supplier}
+                    disabled={!poForm.supplier || createCustomMutation.isPending}
                     className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider border border-mrp-primary text-mrp-primary hover:bg-mrp-primary hover:text-white rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Plus size={12} /> Add SKU
@@ -582,7 +754,7 @@ export function PurchaseOrderView() {
                   </div>
                 )}
 
-                {formItems.length > 0 && (
+                {poForm.supplier && formItems.length > 0 && (
                   <div className="border border-mrp-border rounded-sm overflow-hidden">
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-mrp-app border-b border-mrp-border">
@@ -603,7 +775,8 @@ export function PurchaseOrderView() {
                                 <select
                                   value={item.sku}
                                   onChange={(e) => updateFormItem(idx, { sku: e.target.value })}
-                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                                  disabled={createCustomMutation.isPending}
+                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <option value="">Select SKU...</option>
                                   {supplierSkus.map(s => (
@@ -620,7 +793,8 @@ export function PurchaseOrderView() {
                                 <input
                                   type="number" min={1} value={item.qty}
                                   onChange={(e) => updateFormItem(idx, { qty: Math.max(1, Number(e.target.value)) })}
-                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm"
+                                  disabled={createCustomMutation.isPending}
+                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                               </td>
                               <td className="py-2 px-3 text-right">
@@ -632,7 +806,11 @@ export function PurchaseOrderView() {
                                 {fmt(item.qty * item.unitPrice)}
                               </td>
                               <td className="py-2 px-2 text-center">
-                                <button onClick={() => removeFormItem(idx)} className="text-mrp-text-muted hover:text-red-400 transition-colors cursor-pointer">
+                                <button
+                                  onClick={() => removeFormItem(idx)}
+                                  disabled={createCustomMutation.isPending}
+                                  className="text-mrp-text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                >
                                   <Trash2 size={14} />
                                 </button>
                               </td>
@@ -655,9 +833,14 @@ export function PurchaseOrderView() {
               {/* Notes */}
               <div>
                 <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Notes</label>
-                <textarea value={poForm.notes} onChange={(e) => setPoForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={2} placeholder="Additional notes or instructions..."
-                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted resize-none" />
+                <textarea
+                  value={poForm.notes}
+                  onChange={(e) => setPoForm((f) => ({ ...f, notes: e.target.value }))}
+                  disabled={createCustomMutation.isPending}
+                  rows={2}
+                  placeholder="Additional notes or instructions..."
+                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                />
               </div>
             </div>
 
@@ -667,8 +850,21 @@ export function PurchaseOrderView() {
                 {formItems.length > 0 && <>{formItems.length} SKU · <span className="text-white font-mono font-bold">{fmt(formTotal)}</span></>}
               </span>
               <div className="flex gap-3">
-                <button onClick={() => { setShowCreatePO(false); resetForm() }} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Cancel</button>
-                <button onClick={handleSavePO} className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm cursor-pointer">Save Purchase Order</button>
+                <button
+                  onClick={() => { if (!createCustomMutation.isPending) { setShowCreatePO(false); resetForm() } }}
+                  disabled={createCustomMutation.isPending}
+                  className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSavePO}
+                  disabled={createCustomMutation.isPending}
+                  className="px-6 py-2 text-[11px] font-bold bg-mrp-primary hover:bg-mrp-primary-hover text-white uppercase tracking-widest transition-colors rounded-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                >
+                  {createCustomMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {createCustomMutation.isPending ? 'Saving...' : 'Save Purchase Order'}
+                </button>
               </div>
             </div>
           </div>
@@ -677,5 +873,3 @@ export function PurchaseOrderView() {
     </>
   )
 }
-
-

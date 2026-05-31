@@ -110,7 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const tokenPair = await refreshTokenSilently();
           setAccessToken(tokenPair.access_token);
         } catch (error) {
-          console.error("[Zeus] Periodic token refresh failed.", error);
+          console.warn("[Zeus] Periodic token refresh failed:", error instanceof Error ? error.message : error);
           clearAuth(); // AuthGuard will redirect to login
         }
       }, REFRESH_INTERVAL);
