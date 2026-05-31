@@ -168,7 +168,7 @@ export function CustomersView() {
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-mrp-panel transition-colors group">
-                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary truncate max-w-[120px]">
+                    <td className="py-3 px-4 font-mono text-[13px] text-white truncate max-w-[120px]">
                       CLI-{String(customer.id).substring(0, 6).toUpperCase()}
                     </td>
                     <td className="py-3 px-4 text-[13px] text-white font-medium flex items-center gap-2">
