@@ -26,7 +26,7 @@ interface CatalogItem {
   model_name?: string
   description?: string
   price?: number
-  unit_cost?: number
+  unit_price: number
   type?: string
 }
 
@@ -186,7 +186,7 @@ export function BomCatalogView() {
   const displaySku = selectedSubSku || selectedSku
   const displayCatalogInfo = displaySku ? catalog.find(c => c.model_code === displaySku) : null
   const displayAssemblyDetail = selectedSku ? assemblyDetails[selectedSku] : null
-  const currentPrice = displayCatalogInfo?.price ?? displayCatalogInfo?.unit_cost ?? 0
+  const currentPrice = displayCatalogInfo?.unit_price ?? 0
 
   return (
     <>
