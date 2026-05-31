@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Search, ChevronDown, ChevronUp, Filter, Download, TrendingUp, Loader2, Package, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Filter, Download, TrendingUp, Loader2, Package, RefreshCw, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiGet, apiPost } from '@/lib/axios.client'
 
@@ -42,6 +42,10 @@ export function DashboardView() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState<string>('')
 
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [totalItems, setTotalItems] = useState(0)
+
   const fetchMetrics = async () => {
     setIsMetricsLoading(true)
     try {
@@ -57,14 +61,17 @@ export function DashboardView() {
   const fetchTableData = async () => {
     setIsLoading(true)
     try {
-      const params: any = { page: 1, per_page: 50 }
+      const params: any = { page, per_page: perPage }
       if (statusFilter !== 'ALL') params.status = statusFilter 
       if (searchQuery.trim() !== '') params.search = searchQuery
 
       const res = await apiGet<any>('/mrp/readiness', { params })
-      setOrders(Array.isArray(res.data) ? res.data : [])
+      const dataList = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+      setOrders(dataList)
+      setTotalItems(res.metadata?.total || res.data?.metadata?.total || dataList.length)
     } catch (error) {
       toast.error('Table Error', { description: 'Cannot load readiness table data.' })
+      setOrders([])
     } finally {
       setIsLoading(false)
     }
@@ -81,10 +88,13 @@ export function DashboardView() {
 
   useEffect(() => {
     fetchTableData()
-  }, [statusFilter])
+  }, [statusFilter, page, perPage])
 
   const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') fetchTableData()
+    if (e.key === 'Enter') {
+      setPage(1)
+      fetchTableData()
+    }
   }
 
   const handleToggleRow = async (orderId: string) => {
@@ -105,6 +115,31 @@ export function DashboardView() {
       } finally {
         setLoadingDetails(prev => ({ ...prev, [orderId]: false }))
       }
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const params: any = {}
+      if (statusFilter !== 'ALL') params.status = statusFilter
+      if (searchQuery.trim() !== '') params.search = searchQuery
+
+      const response = await apiGet('/mrp/readiness/export', { 
+        params, 
+        responseType: 'blob' 
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([response.data as any]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `material-readiness-${new Date().toISOString().slice(0, 10)}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      
+      toast.success('CSV Exported', { description: 'Readiness matrix exported successfully.' })
+    } catch (error) {
+      toast.error('Export Failed', { description: 'Could not download the CSV file.' })
     }
   }
 
@@ -138,6 +173,8 @@ export function DashboardView() {
     ? (Math.ceil(metrics.supply_readiness_rate * 100) / 100).toFixed(2)
     : '0.00'
 
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
+
   return (
     <div className="flex-1 bg-mrp-app p-6 overflow-y-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-mrp-border pb-5">
@@ -149,7 +186,7 @@ export function DashboardView() {
           <button onClick={handleRefreshAll} className="p-2 border border-mrp-border rounded-sm bg-mrp-panel text-mrp-text-secondary hover:text-white transition-colors">
             <RefreshCw size={16} className={isLoading || isMetricsLoading ? "animate-spin" : ""} />
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 border border-mrp-border rounded-sm bg-mrp-panel text-[13px] font-medium text-mrp-text-secondary hover:text-white transition-colors">
+          <button onClick={handleExport} className="flex items-center gap-2 px-3 py-2 border border-mrp-border rounded-sm bg-mrp-panel text-[13px] font-medium text-mrp-text-secondary hover:text-white transition-colors">
             <Download size={14} /> Export CSV
           </button>
         </div>
@@ -193,7 +230,7 @@ export function DashboardView() {
         </div>
         <div className="flex items-center gap-2 border border-mrp-border rounded-sm px-3 py-1.5 bg-mrp-app">
           <Filter size={14} className="text-mrp-text-muted" />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
             <option value="ALL" className="bg-mrp-panel">All Readiness Status</option>
             <option value="CLEAR_TO_BUILD" className="bg-mrp-panel">Clear (100% Allocated)</option>
             <option value="PARTIAL" className="bg-mrp-panel">Partial Availability</option>
@@ -310,6 +347,58 @@ export function DashboardView() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
+          <span className="text-[13px] text-mrp-text-muted">
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} of {totalItems} Entries
+          </span>
+          <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select 
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-2">
+              <span>Page</span>
+              <select 
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <span>of {totalPages}</span>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

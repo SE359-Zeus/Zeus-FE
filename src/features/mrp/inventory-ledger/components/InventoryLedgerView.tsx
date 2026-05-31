@@ -50,7 +50,7 @@ export function InventoryLedgerView() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
 
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(20)
+  const [perPage, setPerPage] = useState(15)
   const [totalItems, setTotalItems] = useState(0)
 
   const fetchMetrics = async () => {
@@ -109,8 +109,9 @@ export function InventoryLedgerView() {
 
   const handleExport = async () => {
     try {
-      const params = selectedRows.size > 0 ? { ids: Array.from(selectedRows).join(',') } : {}
-      
+      const params: any = selectedRows.size > 0 ? { ids: Array.from(selectedRows).join(',') } : {}
+      if (filter !== 'ALL' && selectedRows.size === 0) params.type = filter
+
       const response = await apiGet('/mrp/inventory/ledger/export', { 
         params, 
         responseType: 'blob' 
@@ -276,39 +277,52 @@ export function InventoryLedgerView() {
           </table>
         </div>
 
-        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
+        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
           <span className="text-[13px] text-mrp-text-muted">
-            Total {totalItems} transactions
-            {selectedRows.size > 0 && (
-              <span className="ml-2 text-mrp-primary font-medium">· {selectedRows.size} selected</span>
-            )}
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} of {totalItems} Entries
+            {selectedRows.size > 0 && <span className="ml-2 text-mrp-primary font-medium">· {selectedRows.size} selected</span>}
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] text-mrp-text-muted">Rows per page:</span>
+              <span>Rows per page:</span>
               <select 
                 value={perPage}
                 onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-                className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none cursor-pointer"
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
               >
                 <option value={10}>10</option>
+                <option value={15}>15</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
               </select>
             </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-2">
+              <span>Page</span>
+              <select 
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <span>of {totalPages}</span>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
             <div className="flex items-center gap-1">
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors"
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-[13px] text-mrp-text-muted px-2">Page {page} of {totalPages}</span>
               <button 
-                onClick={() => setPage(p => p + 1)}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1 text-mrp-text-muted hover:text-white disabled:opacity-30 transition-colors"
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>
