@@ -39,6 +39,7 @@ import {
   AlertTriangle, PackageCheck, Loader2, ShieldAlert,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { downloadFile } from '@/lib/axios.client'
 import type { AxiosError } from 'axios'
 
 import { useAuthStore } from '@/lib'
@@ -244,16 +245,6 @@ export function GoodsReceiptView() {
     ? grListRes.data
     : (grListRes?.data as any)?.items ?? []
 
-  console.log("[Zeus-DEBUG] SCM Goods Receipts list:", {
-    hasRes: !!grListRes,
-    statusCode: grListRes?.statusCode,
-    message: grListRes?.message,
-    dataType: typeof grListRes?.data,
-    dataIsArray: Array.isArray(grListRes?.data),
-    dataLength: Array.isArray(grListRes?.data) ? grListRes.data.length : null,
-    apiGRsLength: apiGRs.length,
-    accessTokenSet: !!currentUser
-  });
 
   const pagination = grListRes?.data?.pagination ?? (grListRes as any)?.metadata?.pagination
 
@@ -271,7 +262,11 @@ export function GoodsReceiptView() {
     const vendorId = g.vendor_id ?? g.VendorID
     const status = (g.status ?? g.Status) as GRStatus
     const arrivalDate = g.arrivalDate ?? g.arrival_date ?? g.ArrivalDate
-    const operator = g.operator ?? g.operator_id ?? g.OperatorID ?? 'demo-operator'
+    const rawOperator = g.operator_name ?? g.OperatorName ?? g.operator ?? ''
+    const rawOperatorId = g.operator_id ?? g.OperatorID ?? ''
+    // If operator_name is blank, show a human label derived from the operator_id
+    // Seeder creates GRs with operator_id but no operator_name — fallback gracefully
+    const operator = rawOperator || (rawOperatorId ? 'SCM Operator' : '—')
     const rawLockedBy = g.lockedBy ?? g.locked_by ?? g.LockedBy
     const lockedBy = rawLockedBy === operatorId ? 'self' : (rawLockedBy || null)
 
@@ -325,7 +320,9 @@ export function GoodsReceiptView() {
     }
   })
 
-  const filtered = apiGRs.length > 0 ? rows : (filter === 'ALL' ? rows : rows.filter((g) => g.status === filter))
+  // Always apply status filter client-side (API server-side filter is also sent, but client filtering
+  // ensures tab changes work instantly without extra round trips).
+  const filtered = filter === 'ALL' ? rows : rows.filter((g) => g.status === filter)
 
   // Pagination totals
   const totalRows = pagination?.total_rows ?? filtered.length
@@ -552,6 +549,20 @@ export function GoodsReceiptView() {
     return { totalOrdered, totalReceived, totalDefective, discrepancy }
   }
 
+  // ── Export Report ─────────────────────────────────────────────────────────────
+  const [isExporting, setIsExporting] = useState(false)
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      await downloadFile('/scm/goods-receipts/export', 'goods_receipts_report.csv')
+      toast.success('Report exported successfully')
+    } catch (error) {
+      toast.error('Failed to export report')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────
@@ -574,10 +585,12 @@ export function GoodsReceiptView() {
             <RefreshCw size={16} /> Refresh
           </button>
           <button
-            onClick={() => toast.success('Report exported')}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download size={16} /> Export Report
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {isExporting ? 'Exporting...' : 'Export Report'}
           </button>
         </div>
       </div>

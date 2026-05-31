@@ -14,6 +14,9 @@ import type {
   ProcessBlindReceiptRequest,
 } from "../goods-receipt.types";
 
+// PO query key prefix — mirrors purchaseOrderKeys.all from usePurchaseOrders.ts
+const PO_QUERY_KEY = ["purchaseOrders"] as const;
+
 export const goodsReceiptKeys = {
   all: ["goodsReceipts"] as const,
   lists: () => [...goodsReceiptKeys.all, "list"] as const,
@@ -78,6 +81,9 @@ export function useProcessBlindReceipt() {
       queryClient.invalidateQueries({ queryKey: goodsReceiptKeys.lists() });
       queryClient.invalidateQueries({ queryKey: goodsReceiptKeys.details(grId) });
       queryClient.invalidateQueries({ queryKey: goodsReceiptKeys.metrics() });
+      // Processing a GR transitions the linked PO status (In Transit → Received/Partial)
+      // Invalidate PO queries so the Purchase Order page reflects the change immediately.
+      queryClient.invalidateQueries({ queryKey: PO_QUERY_KEY });
     },
   });
 }
