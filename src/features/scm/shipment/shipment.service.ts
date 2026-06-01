@@ -17,7 +17,7 @@
  *  PUT    /scm/shipments/{shipmentId}/state      — generic state transition
  */
 
-import { apiGet, apiPost, apiPut } from '@/lib/axios.client'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/axios.client'
 import type {
   ShipmentListParams,
   CreateShipmentRequest,
@@ -71,6 +71,11 @@ export const shipmentService = {
   /** POST /scm/shipments/{shipmentId}/lock — acquire 30-min dispatch lock */
   acquireDispatchLock(shipmentId: string, payload: AcquireDispatchLockRequest): Promise<ApiResponse<unknown>> {
     return apiPost(`/scm/shipments/${encodeURIComponent(shipmentId)}/lock`, payload)
+  },
+
+  /** DELETE /scm/shipments/{shipmentId}/lock — release dispatch lock */
+  releaseDispatchLock(shipmentId: string): Promise<ApiResponse<unknown>> {
+    return apiDelete(`/scm/shipments/${encodeURIComponent(shipmentId)}/lock`)
   },
 
   /** POST /scm/shipments/{shipmentId}/dispatch — dispatch shipment (Scheduled → In Transit) */

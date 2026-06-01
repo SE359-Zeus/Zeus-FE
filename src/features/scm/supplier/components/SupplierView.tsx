@@ -6,27 +6,23 @@
  *
  * ─── Integrated APIs ──────────────────────────────────────────────────────────
  *
- *  ① GET  /scm/vendors/optimal?sku={sku}           [LIVE ✅]
- *       Find optimal supplier for a given SKU.
- *       Triggered via "Find Optimal" search in the toolbar.
- *
- *  ② POST /scm/vendors/{id}/recalc-metrics         [LIVE ✅]
+ *  ① POST /scm/vendors/{id}/recalc-metrics         [LIVE ✅]
  *       Recalculate quality_score & on_time_rate for a supplier.
  *       Triggered via the "Recalc Metrics" button on each supplier row.
  *
- *  ③ GET  /scm/vendors                             [LIVE ✅]
+ *  ② GET  /scm/vendors                             [LIVE ✅]
  *       List suppliers with filtering, search, and pagination.
  *
- *  ④ POST /scm/vendors                             [LIVE ✅]
+ *  ③ POST /scm/vendors                             [LIVE ✅]
  *       Create a new supplier record.
  *
- *  ⑤ GET  /scm/vendors/metrics                     [LIVE ✅]
+ *  ④ GET  /scm/vendors/metrics                     [LIVE ✅]
  *       Aggregate SCM vendor metrics (total active, average on-time rate).
  *
- *  ⑥ GET  /scm/vendors/export                      [LIVE ✅]
+ *  ⑤ GET  /scm/vendors/export                      [LIVE ✅]
  *       Export supplier list and SKU mappings as a CSV stream.
  *
- *  ⑦ POST /scm/vendors/{id}/sku-mappings           [LIVE ✅]
+ *  ⑥ POST /scm/vendors/{id}/sku-mappings           [LIVE ✅]
  *       Add a new component SKU mapping to an existing supplier.
  *
  * ─── Tier values ─────────────────────────────────────────────────────────────
@@ -36,7 +32,7 @@
 import React, { useState } from 'react'
 import {
   Search, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Pencil, Download, X, RefreshCw, Loader2, Zap, AlertCircle,
+  Pencil, Download, X, RefreshCw, Loader2, AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { AxiosError } from 'axios'
@@ -55,7 +51,6 @@ import type {
   SkuMapping,
   CreateSupplierRequest,
   CreateSkuMappingRequest,
-  OptimalSupplierResult,
 } from '../supplier.types'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,11 +158,7 @@ export function SupplierView() {
   })
   const [isSavingSku, setIsSavingSku] = useState(false)
 
-  // ── Optimal Supplier modal ───────────────────────────────────────────────
-  const [showOptimal, setShowOptimal] = useState(false)
-  const [optimalSku, setOptimalSku]   = useState('')
-  const [isFindingOptimal, setIsFindingOptimal] = useState(false)
-  const [optimalResult, setOptimalResult]       = useState<OptimalSupplierResult | null>(null)
+
 
   // ── Robust Data Parsing / Mock Fallback ──────────────────────────────────
   const apiSuppliers = (Array.isArray(suppliersRes?.data) ? suppliersRes.data : (suppliersRes?.data as any)?.items) ?? []
@@ -234,66 +225,7 @@ export function SupplierView() {
   const totalPages = pagination?.total_pages ?? Math.ceil(totalRows / limit) ?? 1
 
   // ─────────────────────────────────────────────────────────────────────────
-  // ① LIVE API: GET /scm/vendors/optimal?sku={sku}
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const handleFindOptimal = async () => {
-    if (!optimalSku.trim()) {
-      toast.error('SKU required', { description: 'Please enter a SKU to route.' })
-      return
-    }
-    setIsFindingOptimal(true)
-    setOptimalResult(null)
-    try {
-      const res = await supplierService.getOptimalSupplier(optimalSku.trim())
-      if (res.data) {
-        // Map optimal result to support GORM PascalCase casing perfectly
-        const optimalSupplier = res.data.supplier ?? (res.data as any).Supplier
-        const optimalMapping = res.data.mapping ?? (res.data as any).Mapping
-
-        const formattedSupplier: Supplier = {
-          id: optimalSupplier.id ?? (optimalSupplier as any).ID,
-          name: optimalSupplier.name ?? (optimalSupplier as any).Name,
-          contact: optimalSupplier.contact ?? (optimalSupplier as any).Contact,
-          tier: optimalSupplier.tier ?? (optimalSupplier as any).Tier,
-          lead_time_days: optimalSupplier.lead_time_days ?? (optimalSupplier as any).LeadTimeDays ?? 0,
-          quality_score: optimalSupplier.quality_score ?? (optimalSupplier as any).QualityScore ?? 0,
-          on_time_rate: optimalSupplier.on_time_rate ?? (optimalSupplier as any).OnTimeRate ?? 0,
-        }
-
-        const formattedMapping: SkuMapping = {
-          id: optimalMapping.id ?? (optimalMapping as any).ID,
-          supplier_id: optimalMapping.supplier_id ?? (optimalMapping as any).SupplierID,
-          sku: optimalMapping.sku ?? (optimalMapping as any).SKU,
-          name: optimalMapping.name ?? (optimalMapping as any).Name,
-          unit_price: optimalMapping.unit_price ?? (optimalMapping as any).UnitPrice ?? 0,
-          lead_time_days: optimalMapping.lead_time_days ?? (optimalMapping as any).LeadTimeDays ?? 0,
-          min_order_qty: optimalMapping.min_order_qty ?? (optimalMapping as any).MinOrderQty ?? 1,
-        }
-
-        setOptimalResult({
-          supplier: formattedSupplier,
-          mapping: formattedMapping,
-        })
-
-        toast.success('Optimal supplier found', {
-          description: `${formattedSupplier.name} — score based on quality & on-time rate`,
-        })
-      }
-    } catch (err) {
-      const e = err as AxiosError
-      if (e?.response?.status === 404) {
-        toast.error('No supplier found', { description: `No supplier stocks SKU: ${optimalSku}` })
-      } else {
-        toast.error('Routing failed', { description: extractErrorMessage(err, 'Could not find optimal supplier.') })
-      }
-    } finally {
-      setIsFindingOptimal(false)
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // ② LIVE API: POST /scm/vendors/{id}/recalc-metrics
+  // ① LIVE API: POST /scm/vendors/{id}/recalc-metrics
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleRecalcMetrics = async (supplier: { id: string; name: string }) => {
@@ -431,15 +363,7 @@ export function SupplierView() {
           </p>
         </div>
         <div className="flex gap-3 shrink-0">
-          {/* ① Optimal Supplier Routing */}
-          <button
-            onClick={() => { setShowOptimal(true); setOptimalResult(null); setOptimalSku('') }}
-            className="px-4 py-2 border border-mrp-primary/40 text-mrp-primary hover:bg-mrp-primary/10 text-sm font-medium rounded-sm transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <Zap size={15} /> Find Optimal
-          </button>
-
-          {/* ③ Add Supplier */}
+          {/* Add Supplier */}
           <button
             onClick={() => setShowAddSupplier(true)}
             className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 cursor-pointer"
@@ -683,86 +607,6 @@ export function SupplierView() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          MODAL: ① Find Optimal Supplier — GET /scm/vendors/optimal [LIVE]
-      ═══════════════════════════════════════════════════════════════════ */}
-      {showOptimal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setShowOptimal(false)}>
-          <div className="bg-mrp-panel border border-mrp-border w-full max-w-lg rounded-sm shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b border-mrp-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Zap size={18} className="text-mrp-primary" /> Find Optimal Supplier
-              </h3>
-              <button onClick={() => setShowOptimal(false)} className="text-mrp-text-muted hover:text-white transition-colors cursor-pointer"><X size={18} /></button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">
-                  SKU to Route
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="optimal-sku-input"
-                    value={optimalSku}
-                    onChange={(e) => setOptimalSku(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleFindOptimal()}
-                    placeholder="e.g. CPU-XM100PRO-14C-55W"
-                    className="flex-1 bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
-                  />
-                  <button
-                    id="optimal-find-btn"
-                    onClick={handleFindOptimal}
-                    disabled={isFindingOptimal}
-                    className="px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[13px] font-bold rounded-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isFindingOptimal ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                    Route
-                  </button>
-                </div>
-                <p className="text-[11px] text-mrp-text-muted mt-1.5">
-                  Scoring formula: (quality × 0.6 + on_time_rate × 0.4) − (unit_price / 10000)
-                </p>
-              </div>
-
-              {/* Result */}
-              {optimalResult && (
-                <div className="bg-mrp-app border border-mrp-success/30 rounded-sm p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-mrp-success text-[12px] font-bold uppercase tracking-wider">
-                    <Zap size={14} /> Optimal Supplier
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px]">
-                    <span className="text-mrp-text-muted">Supplier</span>
-                    <span className="text-white font-medium">{optimalResult.supplier.name}</span>
-                    <span className="text-mrp-text-muted">Tier</span>
-                    <span className="text-white">{optimalResult.supplier.tier}</span>
-                    <span className="text-mrp-text-muted">Quality Score</span>
-                    <span className={`font-mono font-bold ${scoreColor(optimalResult.supplier.quality_score)}`}>
-                      {optimalResult.supplier.quality_score.toFixed(1)}%
-                    </span>
-                    <span className="text-mrp-text-muted">On-Time Rate</span>
-                    <span className={`font-mono font-bold ${scoreColor(optimalResult.supplier.on_time_rate)}`}>
-                      {optimalResult.supplier.on_time_rate.toFixed(1)}%
-                    </span>
-                    <span className="text-mrp-text-muted border-t border-mrp-border pt-2">SKU</span>
-                    <span className="text-white font-mono border-t border-mrp-border pt-2">{optimalResult.mapping.sku}</span>
-                    <span className="text-mrp-text-muted">Unit Price</span>
-                    <span className="text-white font-mono">${optimalResult.mapping.unit_price.toFixed(2)}</span>
-                    <span className="text-mrp-text-muted">Lead Time</span>
-                    <span className="text-white font-mono">{optimalResult.mapping.lead_time_days} days</span>
-                    <span className="text-mrp-text-muted">Min Order Qty</span>
-                    <span className="text-white font-mono">{optimalResult.mapping.min_order_qty}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-mrp-border bg-mrp-app/40 flex justify-end">
-              <button onClick={() => setShowOptimal(false)} className="px-4 py-2 text-[11px] font-bold text-mrp-text-muted hover:text-white uppercase tracking-wider transition-colors cursor-pointer">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           MODAL: ③ Add Supplier — POST /scm/vendors [PLANNED]

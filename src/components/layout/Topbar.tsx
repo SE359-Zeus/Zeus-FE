@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-import { Search, Lock, Eye, EyeOff, X } from 'lucide-react';
+import { Lock, Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -265,22 +265,7 @@ function UserMenu() {
 
 export function Topbar() {
   return (
-    <header className="h-14 w-full bg-mrp-panel sticky top-0 z-40 border-b border-mrp-border flex items-center justify-between px-8 shrink-0">
-      <div className="flex-1 flex items-center justify-center">
-        <div className="relative w-[400px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" />
-          <input
-            className="w-full bg-mrp-app border border-mrp-border rounded-sm text-sm pl-10 pr-4 py-1.5 focus:outline-none focus:border-mrp-primary text-mrp-text-main placeholder-mrp-text-muted h-8 transition-colors"
-            placeholder="Search operators, audit entries..."
-            type="text"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                toast.info('Search', { description: 'Use the search fields within each module for full functionality.' })
-              }
-            }}
-          />
-        </div>
-      </div>
+    <header className="h-14 w-full bg-mrp-panel sticky top-0 z-40 border-b border-mrp-border flex items-center justify-end px-8 shrink-0">
 
       <div className="flex items-center gap-3 shrink-0">
         <UserMenu />

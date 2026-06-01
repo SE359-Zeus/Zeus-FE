@@ -76,37 +76,10 @@ export function PaginationBar({
           </div>
         </div>
 
-        <div className="w-px h-4 bg-mrp-border" />
-
-        {/* Page selector */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[12px] text-mrp-text-muted">Page</span>
-          <div className="relative">
-            <select
-              id="pagination-page-select"
-              value={page}
-              onChange={e => onPageChange(Number(e.target.value))}
-              disabled={isFetching || totalPages <= 1}
-              className={selectClass}
-            >
-              {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-mrp-text-muted">
-              <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
-                <path d="M0 0l4 5 4-5z" />
-              </svg>
-            </div>
-          </div>
-          <span className="text-[12px] text-mrp-text-muted whitespace-nowrap">of {totalPages || 1}</span>
-        </div>
-
-        <div className="w-px h-4 bg-mrp-border" />
-
         {/* Prev / Next */}
         <div className="flex items-center gap-1">
           <button
+            type="button"
             id="pagination-prev"
             onClick={() => onPageChange(Math.max(1, page - 1))}
             disabled={page <= 1 || isFetching}
@@ -116,6 +89,7 @@ export function PaginationBar({
             <ChevronLeft size={15} />
           </button>
           <button
+            type="button"
             id="pagination-next"
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages || isFetching}

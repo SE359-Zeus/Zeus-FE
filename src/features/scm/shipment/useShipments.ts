@@ -89,6 +89,18 @@ export function useAcquireDispatchLock() {
   })
 }
 
+/** Mutation — release dispatch lock (DELETE /scm/shipments/{id}/lock) */
+export function useReleaseDispatchLock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (shipmentId: string) => shipmentService.releaseDispatchLock(shipmentId),
+    onSuccess: (_, shipmentId) => {
+      queryClient.invalidateQueries({ queryKey: shipmentKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: shipmentKeys.details(shipmentId) })
+    },
+  })
+}
+
 /** Mutation — dispatch shipment (POST /scm/shipments/{id}/dispatch) — Scheduled → In Transit */
 export function useDispatchShipment() {
   const queryClient = useQueryClient()

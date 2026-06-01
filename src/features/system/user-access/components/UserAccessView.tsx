@@ -229,8 +229,15 @@ export function UserAccessView() {
 
   const setStatus = useSetUserStatus()
 
-  const users = data?.data?.items ?? []
-  const pagination = data?.metadata?.pagination
+  const rawData = data?.data
+  const rawUsers = Array.isArray(rawData) ? rawData : ((rawData as any)?.items ?? (rawData as any)?.data ?? [])
+  const pagination = (rawData as any)?.pagination ?? data?.metadata?.pagination
+
+  const totalRows = pagination?.total_rows ?? rawUsers.length
+  const totalPages = pagination?.total_pages ?? Math.max(1, Math.ceil(totalRows / limit))
+
+  const startIndex = (page - 1) * limit
+  const users = rawUsers.length > limit ? rawUsers.slice(startIndex, startIndex + limit) : rawUsers
 
   const handleToggleStatus = (user: UserResponse) => {
     const next = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
@@ -408,16 +415,16 @@ export function UserAccessView() {
           </div>
 
           {/* Pagination Footer — always visible */}
-          <PaginationBar
-            itemLabel="Users"
-            page={page}
-            limit={limit}
-            totalRows={pagination?.total_rows ?? 0}
-            totalPages={pagination?.total_pages ?? 1}
-            isFetching={isFetching}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-          />
+            <PaginationBar
+              itemLabel="Users"
+              page={page}
+              limit={limit}
+              totalRows={totalRows}
+              totalPages={totalPages}
+              isFetching={isFetching}
+              onPageChange={setPage}
+              onLimitChange={setLimit}
+            />
         </div>
       </div>
     </>

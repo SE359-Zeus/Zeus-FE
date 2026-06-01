@@ -82,7 +82,8 @@ export function ComponentInventoryView() {
   }
 
   // Handle both possible structures: { data: { items: [] } } or { data: [] }
-  const items = Array.isArray(data?.data) ? data.data : (data?.data?.items || [])
+  const rawData = data?.data
+  const items = Array.isArray(rawData) ? rawData : ((rawData as any)?.items ?? (rawData as any)?.data ?? [])
   const paginationMeta = data?.metadata?.pagination as any
   const total = paginationMeta?.total_rows || paginationMeta?.totalCount || 0
   const totalPages = paginationMeta?.total_pages || paginationMeta?.totalPages || 1

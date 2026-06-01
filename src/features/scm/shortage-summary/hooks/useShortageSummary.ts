@@ -2,14 +2,16 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { shortageSummaryService } from '../shortage-summary.service'
+import type { ShortageSummaryParams } from '../shortage-summary.types'
 
 export const shortageSummaryKeys = {
   all: ['shortageSummary'] as const,
+  list: (params: ShortageSummaryParams) => [...shortageSummaryKeys.all, params] as const,
 }
 
-export function useShortageSummary() {
+export function useShortageSummary(params: ShortageSummaryParams) {
   return useQuery({
-    queryKey: shortageSummaryKeys.all,
-    queryFn: () => shortageSummaryService.getShortageSummary(),
+    queryKey: shortageSummaryKeys.list(params),
+    queryFn: () => shortageSummaryService.getShortageSummary(params),
   })
 }
