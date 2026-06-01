@@ -119,18 +119,26 @@ export function AuditLogsView() {
     isLoading: metricsLoading,
   } = useAuditMetrics()
 
-  const logs: AuditLog[] = logsData?.data?.items ?? []
-  const pagination = logsData?.metadata?.pagination
+  const rawData = logsData?.data
+  const rawLogs = Array.isArray(rawData) ? rawData : ((rawData as any)?.items ?? (rawData as any)?.data ?? [])
+  const pagination = (rawData as any)?.pagination ?? logsData?.metadata?.pagination
+
+  const totalRows = pagination?.total_rows ?? rawLogs.length
+  const totalPages = pagination?.total_pages ?? Math.max(1, Math.ceil(totalRows / limit))
+
+  const startIndex = (page - 1) * limit
+  const baseLogs: AuditLog[] = rawLogs.length > limit ? rawLogs.slice(startIndex, startIndex + limit) : rawLogs
+
   const metrics = metricsData?.data
 
   // Client-side search filter (on current page data)
   const filtered = searchQuery
-    ? logs.filter(e =>
+    ? baseLogs.filter(e =>
         e.user_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.target_resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.details?.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : logs
+    : baseLogs
 
   // Client-side sort toggle
   const sorted = sortDesc ? filtered : [...filtered].reverse()
@@ -401,8 +409,8 @@ export function AuditLogsView() {
           itemLabel="Entries"
           page={page}
           limit={limit}
-          totalRows={pagination?.total_rows ?? 0}
-          totalPages={pagination?.total_pages ?? 1}
+          totalRows={totalRows}
+          totalPages={totalPages}
           isFetching={isFetching}
           onPageChange={setPage}
           onLimitChange={setLimit}

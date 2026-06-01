@@ -1,9 +1,9 @@
 import { apiGet } from '@/lib/axios.client'
-import type { ApiResponse } from '@/lib/types/api.types'
-import type { ShortageSummary } from './shortage-summary.types'
+import type { ApiResponse, PaginatedResult } from '@/lib/types/api.types'
+import type { ShortageSummary, ShortageSummaryParams } from './shortage-summary.types'
 
 export const shortageSummaryService = {
-  getShortageSummary: (): Promise<ApiResponse<ShortageSummary[]>> => {
-    return apiGet<ShortageSummary[]>('/scm/vendors/shortage-summary')
+  getShortageSummary: (params?: ShortageSummaryParams): Promise<ApiResponse<PaginatedResult<ShortageSummary>>> => {
+    return apiGet<PaginatedResult<ShortageSummary>>('/scm/vendors/shortage-summary', { params })
   }
 }

@@ -65,6 +65,8 @@ export interface CreateShipmentRequest {
   tracking_no?: string
   origin?: string
   ship_date?: string        // ISO datetime string
+  locked_by?: string | null
+  lock_expires_at?: string | null
 }
 
 export interface AcquireDispatchLockRequest {

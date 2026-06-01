@@ -24,7 +24,7 @@ import React, { useState } from 'react'
 import {
   Download, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Check, Filter, Truck, Package, X, Loader2, ShieldAlert, PackageCheck,
-  Info,
+  Info, Lock, Unlock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/lib'
@@ -37,6 +37,8 @@ import {
   useDispatchShipment,
   useMarkDelivered,
   useTransitionShipmentState,
+  useAcquireDispatchLock,
+  useReleaseDispatchLock,
 } from '../useShipments'
 import type { ShipmentStatus, CreateShipmentRequest } from '../shipment.types'
 
@@ -105,21 +107,27 @@ export function ShipmentView() {
   const dispatchMutation = useDispatchShipment()
   const deliverMutation  = useMarkDelivered()
   const transitionMutation = useTransitionShipmentState()
+  const acquireLockMutation = useAcquireDispatchLock()
+  const releaseLockMutation = useReleaseDispatchLock()
 
   // ── Normalize API response ───────────────────────────────────────────────────
-  const apiShipments = Array.isArray(listRes?.data)
-    ? listRes!.data as any[]
-    : (listRes?.data as any)?.items ?? []
+  const rawData = listRes?.data
+  const apiShipments = Array.isArray(rawData)
+    ? rawData as any[]
+    : ((rawData as any)?.items ?? (rawData as any)?.data ?? [])
 
-  const pagination = (listRes?.data as any)?.pagination
+  const pagination = (rawData as any)?.pagination ?? listRes?.metadata?.pagination
   const totalRows  = pagination?.total_rows  ?? apiShipments.length
-  const totalPages = pagination?.total_pages ?? 1
+  const totalPages = pagination?.total_pages ?? Math.max(1, Math.ceil(totalRows / limit))
+
+  const startIndex = (page - 1) * limit
+  const baseShipments = apiShipments.length > limit ? apiShipments.slice(startIndex, startIndex + limit) : apiShipments
 
   const metrics = metricsRes?.data ?? null
   const carriers: string[] = (carriersRes?.data as any[] ?? []).map((c: any) => c.name ?? c)
 
   // ── Map API rows to uniform shape ────────────────────────────────────────────
-  const rows = apiShipments.map((s: any) => ({
+  const rows = baseShipments.map((s: any) => ({
     id:          s.id ?? s.ID,
     poRef:       s.po_ref ?? s.PORef ?? '—',
     supplier:    s.supplier_name ?? s.SupplierName ?? '—',
@@ -129,6 +137,8 @@ export function ShipmentView() {
     origin:      s.origin ?? s.Origin ?? '—',
     shipDate:    fmtDate(s.ship_date ?? s.ShipDate),
     eta:         fmtDate(s.eta ?? s.ETA),
+    lockedBy:    s.locked_by ?? s.LockedBy ?? null,
+    lockExpiresAt: s.lock_expires_at ?? s.LockExpiresAt ?? null,
     items:       (s.items ?? s.Items ?? []).map((li: any) => ({
       id:          li.id ?? li.ID,
       sku:         li.sku ?? li.SKU,
@@ -209,6 +219,20 @@ export function ShipmentView() {
   }
 
   // ── Dispatch / Deliver actions ────────────────────────────────────────────────
+  const handleAcquireLock = (shipmentId: string) => {
+    acquireLockMutation.mutate({ shipmentId, payload: { operator_id: operatorId } }, {
+      onSuccess: () => toast.success('Lock Acquired', { description: `You now have exclusive rights to dispatch ${shipmentId}` }),
+      onError:   (err: any) => toast.error('Failed to acquire lock', { description: err?.response?.data?.message || err.message }),
+    })
+  }
+
+  const handleReleaseLock = (shipmentId: string) => {
+    releaseLockMutation.mutate(shipmentId, {
+      onSuccess: () => toast.success('Lock Released', { description: `Lock on ${shipmentId} released` }),
+      onError:   (err: any) => toast.error('Failed to release lock', { description: err?.response?.data?.message || err.message }),
+    })
+  }
+
   const handleDispatch = (shipmentId: string) => {
     dispatchMutation.mutate({ shipmentId, payload: { operator_id: operatorId } }, {
       onSuccess: () => toast.success('Shipment Dispatched', { description: `${shipmentId} is now In Transit` }),
@@ -255,7 +279,7 @@ export function ShipmentView() {
   }
 
   // ── Is any action pending for a specific row ──────────────────────────────────
-  const isBusy = dispatchMutation.isPending || deliverMutation.isPending || transitionMutation.isPending
+  const isBusy = dispatchMutation.isPending || deliverMutation.isPending || transitionMutation.isPending || acquireLockMutation.isPending || releaseLockMutation.isPending
 
   return (
     <>
@@ -463,14 +487,45 @@ export function ShipmentView() {
                                 <div className="pt-3 border-t border-mrp-border space-y-2">
                                   {/* Scheduled → Dispatch */}
                                   {shp.status === 'Scheduled' && (
-                                    <button
-                                      onClick={() => handleDispatch(shp.id)}
-                                      disabled={isBusy}
-                                      className="w-full px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                      {dispatchMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Truck size={13} />}
-                                      Dispatch Shipment
-                                    </button>
+                                    <>
+                                      {(!shp.lockedBy || (shp.lockExpiresAt && new Date(shp.lockExpiresAt) < new Date())) ? (
+                                        <button
+                                          onClick={() => handleAcquireLock(shp.id)}
+                                          disabled={isBusy}
+                                          className="w-full px-4 py-2 bg-mrp-primary hover:bg-mrp-primary-hover text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                          {acquireLockMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
+                                          Acquire Lock to Dispatch
+                                        </button>
+                                      ) : shp.lockedBy === operatorId ? (
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => handleReleaseLock(shp.id)}
+                                            disabled={isBusy}
+                                            className="w-1/3 px-2 py-2 border border-mrp-border text-mrp-text-muted hover:text-white hover:bg-mrp-border text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                          >
+                                            {releaseLockMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />}
+                                            Release
+                                          </button>
+                                          <button
+                                            onClick={() => handleDispatch(shp.id)}
+                                            disabled={isBusy}
+                                            className="w-2/3 px-4 py-2 bg-mrp-success/80 hover:bg-mrp-success text-white text-[11px] font-bold uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                          >
+                                            {dispatchMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <Truck size={13} />}
+                                            Dispatch Shipment
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          disabled
+                                          className="w-full px-4 py-2 border border-mrp-border bg-mrp-panel text-mrp-text-muted text-[11px] font-bold uppercase tracking-wider rounded-sm opacity-60 cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                          <Lock size={13} />
+                                          Locked by {shp.lockedBy}
+                                        </button>
+                                      )}
+                                    </>
                                   )}
 
                                   {/* In Transit → Mark Delivered */}

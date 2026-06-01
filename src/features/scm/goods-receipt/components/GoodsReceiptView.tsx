@@ -480,6 +480,15 @@ export function GoodsReceiptView() {
         }
       })
 
+      // Release the lock immediately after processing — the /process endpoint transitions
+      // the GR to Complete but does NOT clear locked_by / lock_expires_at on the backend.
+      // Silently swallow any release error (GR is already Complete; lock will expire on its own).
+      try {
+        await releaseLockMutation.mutateAsync(gr.id)
+      } catch {
+        // no-op: lock will expire naturally; don't block the success UX
+      }
+
       setExpandedId(null)
 
       // Clear form state for this GR

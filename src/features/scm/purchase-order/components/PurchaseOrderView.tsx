@@ -6,9 +6,9 @@ import {
   Check, Filter, CheckCircle, Truck, X, Trash2, Loader2, ShieldAlert, Info,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { useAuthStore } from '@/lib'
+import { useAuthStore, apiGet } from '@/lib'
 import {
   usePurchaseOrders,
   useCreateCustomPO,
@@ -34,42 +34,8 @@ interface PurchaseOrder {
 interface SkuInfo { sku: string; description: string; unitPrice: number }
 interface FormLineItem { sku: string; qty: number; unitPrice: number }
 
-const SUPPLIER_UUIDS: Record<string, string> = {
-  'Northwind Component Supply': 'd870ac5c-fa7d-394d-8f63-bbbb105ded34',
-  'Apex Industrial Parts': '24978c6b-587e-3528-92d2-84bf53067f09',
-  'BluePeak Electronics': 'a6341699-fe34-3ab5-97a8-f14e1c868436',
-  'Orion Component Works': '4ad26053-dcd1-3d15-b58e-ee8117e23ad2',
-  'Vertex Supply Group': 'f7f72cd2-3949-3595-a9db-f1b76f4786a4',
-}
-
-const SUPPLIER_SKUS: Record<string, SkuInfo[]> = {
-  // Live GORM Seeded Suppliers & SKUs
-  'Northwind Component Supply': [
-    { sku: '5W10V25844', description: 'Wireless,WLAN,LTN,8852BE', unitPrice: 18.5 },
-    { sku: '5T10S33238', description: 'TAPE H 82L5 Camera Cable_Colth', unitPrice: 43.75 },
-    { sku: '5F10S13964', description: 'System FAN 82L5_L+R_DIS', unitPrice: 42.25 },
-  ],
-  'Apex Industrial Parts': [
-    { sku: '5R31L08532', description: 'W11_H64_SL-ENG RUSB', unitPrice: 23.25 },
-    { sku: '5F10S13964', description: 'System FAN 82L5_L+R_DIS', unitPrice: 48.5 },
-    { sku: '5T10S33377', description: 'SSD Mylar H 82QQ 2242', unitPrice: 47 },
-  ],
-  'BluePeak Electronics': [
-    { sku: '5T10S33377', description: 'SSD Mylar H 82QQ 2242', unitPrice: 53.25 },
-    { sku: '5SB0S31990', description: 'Speaker H 82SK L+R', unitPrice: 51.75 },
-    { sku: '5T10S33237', description: 'MYLAR H 82L5 D Cover_Zheguang', unitPrice: 77 },
-  ],
-  'Orion Component Works': [
-    { sku: '5C50S25436', description: 'Sensor_Board H 82SN AMD', unitPrice: 56.5 },
-    { sku: '5R60S37210', description: 'Mic Rubber H 82SK (L+R)*30', unitPrice: 81.75 },
-    { sku: '5CB1H95501', description: 'Lower Case H 82SK CLGY', unitPrice: 80.25 },
-  ],
-  'Vertex Supply Group': [
-    { sku: '5CB1H95501', description: 'Lower Case H 82SK CLGY', unitPrice: 86.5 },
-    { sku: '5SS1C09736', description: 'Lenovo SSD 512G,M.2,2242,PCIE4X4,STD,SAMSUNG', unitPrice: 85 },
-    { sku: '5B21H82164', description: 'Lenovo BDPLANAR MB R5HSCE_RTX3050_4G_16G_WINRM', unitPrice: 110.25 },
-  ],
-}
+// ─── Supplier SKU data is now fetched live from GET /scm/vendors ────────────
+// SUPPLIER_SKUS and SUPPLIER_UUIDS have been removed — see liveSuppliers below.
 
 const mockPOs: PurchaseOrder[] = [
   {
@@ -138,13 +104,42 @@ export function PurchaseOrderView() {
   // ── React Query Hooks — Live SCM Purchase Order APIs ─────────────────────
   const { data: poListRes, isLoading: isListLoading } = usePurchaseOrders()
 
-  const apiPOs = Array.isArray(poListRes?.data)
-    ? poListRes.data
-    : (poListRes?.data as any)?.items ?? []
+  const rawData = poListRes?.data
+  const apiPOs = Array.isArray(rawData)
+    ? rawData as any[]
+    : ((rawData as any)?.items ?? (rawData as any)?.data ?? [])
 
   const createCustomMutation = useCreateCustomPO()
   const approveMutation = useApprovePO()
   const transitionMutation = useTransitionPOState()
+
+  // ── Live Supplier + SKU Mapping list (for Create PO modal) ───────────────
+  // Calls GET /scm/vendors (preloads SkuMappings on the backend).
+  // This replaces the old hardcoded SUPPLIER_SKUS / SUPPLIER_UUIDS dicts.
+  const { data: suppliersRes, isLoading: isSuppliersLoading } = useQuery({
+    queryKey: ['suppliers-for-po-modal'],
+    queryFn: () => apiGet<any>('/scm/vendors', { params: { limit: 100 } }),
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes — supplier list rarely changes
+  })
+
+  /** Normalised supplier list derived from API response. */
+  const liveSuppliers: Array<{ id: string; name: string; skuMappings: SkuInfo[] }> = (() => {
+    const raw = Array.isArray(suppliersRes?.data)
+      ? suppliersRes.data
+      : (suppliersRes?.data as any)?.items ?? []
+    return raw.map((s: any) => {
+      const rawMappings = s.skuMappings ?? s.SkuMappings ?? s.sku_mappings ?? []
+      return {
+        id: s.id ?? s.ID,
+        name: s.name ?? s.Name,
+        skuMappings: rawMappings.map((m: any) => ({
+          sku: m.sku ?? m.SKU,
+          description: m.name ?? m.Name ?? m.description ?? m.Description ?? '',
+          unitPrice: m.unit_price ?? m.UnitPrice ?? 0,
+        })),
+      }
+    })
+  })()
 
   // ── Computed & Robust Casing Mapping ─────────────────────────────────────
   // Mock data fallback ONLY before API returns first payload
@@ -219,7 +214,9 @@ export function PurchaseOrderView() {
   const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '', targetBuild: '' })
   const [formItems, setFormItems] = useState<FormLineItem[]>([])
 
-  const supplierSkus = SUPPLIER_SKUS[poForm.supplier] ?? []
+  // poForm.supplier now stores the vendor UUID (not the display name)
+  const selectedSupplier = liveSuppliers.find(s => s.id === poForm.supplier)
+  const supplierSkus = selectedSupplier?.skuMappings ?? []
 
   const addFormItem = () => {
     if (!poForm.supplier) { toast.error('Choose Supplier first'); return }
@@ -255,9 +252,10 @@ export function PurchaseOrderView() {
     if (formItems.length === 0) { toast.error('Add at least one SKU to order'); return }
     if (formItems.some(i => !i.sku)) { toast.error('Choose SKU for all lines'); return }
 
-    const vendorId = SUPPLIER_UUIDS[poForm.supplier]
+    // poForm.supplier is already the vendor UUID from the live supplier select
+    const vendorId = poForm.supplier
     if (!vendorId) {
-      toast.error('Invalid supplier UUID mapping');
+      toast.error('Supplier is required');
       return;
     }
 
@@ -693,7 +691,12 @@ export function PurchaseOrderView() {
                     className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">Select supplier...</option>
-                    {Object.keys(SUPPLIER_SKUS).map(s => <option key={s}>{s}</option>)}
+                    {isSuppliersLoading
+                      ? <option disabled>Loading suppliers…</option>
+                      : liveSuppliers.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))
+                    }
                   </select>
                 </div>
               </div>

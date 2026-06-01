@@ -4,3 +4,8 @@ export interface ShortageSummary {
   req_qty: number;
   best_supplier: string;
 }
+
+export interface ShortageSummaryParams {
+  page?: number;
+  limit?: number;
+}
