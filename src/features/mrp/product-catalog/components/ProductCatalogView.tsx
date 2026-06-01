@@ -607,8 +607,7 @@ export function BomCatalogView() {
                 }}
                 className="px-3 py-2 text-[12px] cursor-pointer hover:bg-mrp-app hover:text-white text-mrp-text-secondary transition-colors"
               >
-                <span className="font-mono font-bold text-mrp-primary">{p.sku}</span>
-                <span className="ml-2">— {p.name}</span>
+                <span className="font-mono font-bold text-white">{p.sku}</span>
               </div>
             )) : (
               <div className="px-3 py-3 text-[12px] text-mrp-text-muted">No match found</div>
