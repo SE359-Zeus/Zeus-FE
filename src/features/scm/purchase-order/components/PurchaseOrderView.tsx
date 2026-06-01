@@ -576,7 +576,7 @@ export function PurchaseOrderView() {
                                       <div className="flex items-start gap-2 px-3 py-2 border border-mrp-primary/30 bg-mrp-primary/5 rounded-sm text-[11px] text-mrp-text-secondary max-w-xs">
                                         <Info size={13} className="text-mrp-primary mt-0.5 flex-shrink-0" />
                                         <span>
-                                          Goods Receipt <span className="font-mono text-mrp-primary">{po.id}-GR-001</span> has been created and is awaiting inspection on the{' '}
+                                          A Goods Receipt for <span className="font-mono text-mrp-primary">{po.id}</span> has been created and is awaiting inspection on the{' '}
                                           <a href="/scm/goods-receipt" className="text-mrp-primary underline hover:text-white transition-colors">Goods Receipt page</a>.
                                         </span>
                                       </div>
