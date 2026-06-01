@@ -44,11 +44,12 @@ const navSections = [
   {
     title: 'SCM',
     items: [
+      { href: '/scm/shortage-summary', label: 'Shortage Summary', icon: AlertTriangle },
       { href: '/scm/suppliers', label: 'Supplier', icon: Truck },
       { href: '/scm/po-orchestration', label: 'Purchase Order', icon: ClipboardList },
       { href: '/scm/goods-receipt', label: 'Goods Receipt', icon: PackageCheck },
-      { href: '/scm/shipments', label: 'Shipment', icon: Ship },
       { href: '/scm/inventory', label: 'Inventory', icon: Boxes },
+      { href: '/scm/shipments', label: 'Shipment', icon: Ship },
     ]
   },
   {
@@ -104,9 +105,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               className={`${isActive ? 'text-mrp-primary' : ''}`}
               {...(isActive ? { fill: 'currentColor', strokeWidth: 1.5 } : { strokeWidth: 2 })}
             />
-            {item.label === 'Shortages' && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-mrp-danger animate-pulse" />
-            )}
           </div>
           
           <span

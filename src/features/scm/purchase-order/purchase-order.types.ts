@@ -37,11 +37,9 @@ export interface POLineItem {
 export interface PurchaseOrder {
   id: string; // e.g. "PO-2025-1"
   vendor_id: string; // uuid
-  target_build: string;
   status: POStatus;
   total_value: number;
   payment_terms: string;
-  expected_delivery: string; // ISO date-time
   notes: string;
   created_at: string;
   updated_at: string;
@@ -57,10 +55,8 @@ export interface PurchaseOrder {
  */
 export interface CreateCustomPORequest {
   id: string;
-  expected_delivery: string;
   vendor_id: string;
   notes?: string;
-  target_build?: string;
   items: Array<{
     sku: string;
     qty: number;
@@ -72,7 +68,6 @@ export interface CreateCustomPORequest {
  */
 export interface CreatePODraftRequest {
   vendor_id: string;
-  target_build?: string;
 }
 
 /**
