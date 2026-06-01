@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-import { Search, Bell, LogOut, ShieldCheck, Lock, Eye, EyeOff, X } from 'lucide-react';
+import { Search, Lock, Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/features/system/auth/hooks/useAuth';
-import { useAuditMetrics } from '@/features/system/audit-logs/hooks/useAudit';
+
 import { changePassword } from '@/features/system/auth/auth.service';
 
 // ---------------------------------------------------------------------------
@@ -190,58 +190,6 @@ function ChangePasswordModal({ onClose }: ChangePasswordModalProps) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Notification Bell — wired to real security_events metric
-// ---------------------------------------------------------------------------
-
-function NotificationBell() {
-  const { data: metricsData } = useAuditMetrics();
-  const securityEvents = metricsData?.data?.security_events ?? 0;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="relative p-2 rounded-sm text-mrp-text-muted hover:text-white hover:bg-mrp-panel transition-colors focus:outline-none">
-          <Bell size={16} />
-          {securityEvents > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-mrp-danger rounded-full animate-pulse" />
-          )}
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align="end"
-        className="w-80 bg-mrp-panel border border-mrp-border rounded-sm shadow-sm p-0 overflow-hidden"
-      >
-        <div className="px-4 py-3 border-b border-mrp-border flex items-center justify-between">
-          <h3 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">System Alerts</h3>
-          {securityEvents > 0 && (
-            <span className="text-[10px] font-bold text-mrp-danger bg-mrp-danger/10 px-2 py-0.5 rounded-sm">
-              {securityEvents} Security {securityEvents === 1 ? 'Event' : 'Events'}
-            </span>
-          )}
-        </div>
-        <div className="px-4 py-3">
-          {securityEvents > 0 ? (
-            <div className="flex items-start gap-3">
-              <ShieldCheck size={16} className="text-mrp-danger shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[13px] text-mrp-danger font-medium">
-                  {securityEvents} security {securityEvents === 1 ? 'event' : 'events'} detected
-                </p>
-                <p className="text-[12px] text-mrp-text-muted mt-0.5">
-                  Review Audit Logs → Security filter for details.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[13px] text-mrp-text-muted text-center py-2">No active alerts</p>
-          )}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // User Menu — avatar click → Change Password only
@@ -335,8 +283,6 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        <NotificationBell />
-        <div className="h-5 w-px bg-mrp-border" />
         <UserMenu />
       </div>
     </header>
