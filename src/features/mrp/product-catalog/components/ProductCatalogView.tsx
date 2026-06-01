@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   FolderOpen, Folder, Cpu, MemoryStick, HardDrive, Monitor, Battery, RefreshCw,
-  CircuitBoard, Plus, Trash2, X, PlusCircle, GitBranch, Loader2
+  CircuitBoard, Plus, Trash2, X, PlusCircle, GitBranch, Loader2, AlertTriangle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, apiDelete } from '@/lib/axios.client'
@@ -14,7 +14,8 @@ interface ComponentItem {
 }
 
 interface AssemblyDetail { 
-  model_code: string
+  id?: string
+  model_code?: string
   name: string
   description?: string
   total_parts?: number
@@ -22,11 +23,15 @@ interface AssemblyDetail {
 }
 
 interface CatalogItem {
-  model_code: string
+  part_id?: string
+  sku?: string
+  model_code?: string
+  name?: string
   model_name?: string
   description?: string
   price?: number
-  unit_price: number
+  unit_price?: number
+  unit_cost?: number
   type?: string
 }
 
@@ -53,6 +58,7 @@ const getIconForSku = (sku: string) => {
 }
 
 export function BomCatalogView() {
+  const [assembliesList, setAssembliesList] = useState<any[]>([])
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
@@ -66,7 +72,7 @@ export function BomCatalogView() {
   const [isWhereUsedLoading, setIsWhereUsedLoading] = useState(false)
   
   const [showModal, setShowModal] = useState(false)
-  const [modalName, setModalName] = useState('')
+  const [bomForm, setBomForm] = useState({ model_code: '', model_name: '', price: '' })
   const [modalRows, setModalRows] = useState<ModalRow[]>([{ id: 1, sku: '', name: '', qty: 1 }])
   const [nextId, setNextId] = useState(2)
 
@@ -74,34 +80,81 @@ export function BomCatalogView() {
   const [skuQuery, setSkuQuery] = useState('')
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
-  const ALL_PARTS = catalog.map(item => ({ 
-    sku: item.model_code, 
-    name: item.model_name || 'Unknown Part' 
-  }))
+  const [assemblyToDelete, setAssemblyToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const fetchCatalogData = async () => {
+  const fetchAssembliesList = async () => {
     setIsLoading(true)
     try {
-      const res = await apiGet<any>('/mrp/catalog')
-      const dataList = Array.isArray(res.data) ? res.data : []
+      const res = await apiGet<any>('/mrp/assemblies')
+      const dataList = Array.isArray(res.data) ? res.data : (res.data?.data || [])
       
-      dataList.sort((a, b) => {
-        const nameA = a.model_name || a.model_code || ''
-        const nameB = b.model_name || b.model_code || ''
+      dataList.sort((a: any, b: any) => {
+        const nameA = a.name || a.model_name || a.model_code || a.id || ''
+        const nameB = b.name || b.model_name || b.model_code || b.id || ''
         return nameA.localeCompare(nameB)
       })
 
-      setCatalog(dataList)
+      setAssembliesList(dataList)
     } catch (error) {
-      toast.error('Sync Error', { description: 'Cannot load Catalog directory.' })
+      toast.error('Sync Error', { description: 'Cannot load assemblies directory.' })
     } finally {
       setIsLoading(false)
     }
   }
 
+  const fetchCatalogData = async () => {
+    try {
+      const res = await apiGet<any>('/mrp/catalog')
+      const dataList = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+      setCatalog(dataList)
+    } catch (error) {
+      console.error('Catalog fetch error', error)
+    }
+  }
+
   useEffect(() => {
+    fetchAssembliesList()
     fetchCatalogData()
   }, [])
+
+  const [allSubParts, setAllSubParts] = useState<any[]>([]);
+
+  const aggregateAllComponents = async () => {
+    try {
+      const res = await apiGet<any>('/mrp/catalog');
+      const assemblies = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      
+      const componentPromises = assemblies.map((a: any) => 
+        apiGet<any>(`/mrp/assemblies/${a.model_code || a.id || a.sku || a.name}`).catch(() => ({ data: { components: [] } }))
+      );
+      
+      const results = await Promise.all(componentPromises);
+      
+      const uniquePartsMap = new Map<string, { sku: string; name: string }>();
+      
+      results.forEach(res => {
+        const comps = res.data?.components || [];
+        comps.forEach((c: any) => {
+          if (c.sku && !uniquePartsMap.has(c.sku)) {
+            uniquePartsMap.set(c.sku, { sku: c.sku, name: `Part ${c.sku}` });
+          }
+        });
+      });
+      
+      setAllSubParts(Array.from(uniquePartsMap.values()));
+    } catch (error) {
+      toast.error('Aggregation Failed', { description: 'Could not resolve part list.' });
+    }
+  };
+
+  useEffect(() => {
+    fetchAssembliesList();
+    fetchCatalogData();
+    aggregateAllComponents();
+  }, []);
+
+  const ALL_PARTS = allSubParts;
 
   const handleToggleCatalogItem = async (identifier: string) => {
     const isExpanded = !!expandedItems[identifier]
@@ -151,42 +204,59 @@ export function BomCatalogView() {
     setModalRows((p) => p.map((r) => r.id === id ? { ...r, qty } : r))
 
   const handleCreateAssembly = async () => {
-    if (!modalName.trim()) return toast.error('Validation Error', { description: 'Assembly name is required' })
+    if (!bomForm.model_code.trim()) return toast.error('Validation Error', { description: 'Model Code (SKU) is required' })
+    if (!bomForm.model_name.trim()) return toast.error('Validation Error', { description: 'Product Name is required' })
+    
     const validComponents = modalRows.filter(r => r.sku.trim() !== '' && r.qty > 0)
     if (validComponents.length === 0) return toast.error('Validation Error', { description: 'At least one component is required' })
 
     try {
       const payload = {
-        name: modalName,
+        product_model_code: bomForm.model_code,
+        product_model_name: bomForm.model_name,
+        unit_price: Number(bomForm.price) || 0,
         components: validComponents.map(r => ({ sku: r.sku, qty: r.qty }))
       }
       await apiPost('/mrp/assemblies', payload)
-      toast.success('Created', { description: `Assembly mapped to ${modalName}` })
+      toast.success('Created', { description: `Assembly mapped to ${bomForm.model_code}` })
       setShowModal(false)
-      setModalName('')
+      setBomForm({ model_code: '', model_name: '', price: '' })
       setModalRows([{ id: 1, sku: '', name: '', qty: 1 }])
-      fetchCatalogData()
+      await fetchAssembliesList()
+      await fetchCatalogData()
     } catch (error) {
       toast.error('Create Failed', { description: 'Cannot save assembly configuration.' })
     }
   }
 
-  const handleDeleteAssembly = async (sku: string) => {
-    if (!window.confirm(`Delete assembly configuration for ${sku}?`)) return
+  const confirmDeleteAssembly = (sku: string) => {
+    setAssemblyToDelete(sku)
+  }
+
+  const executeDeleteAssembly = async () => {
+    if (!assemblyToDelete) return
+    setIsDeleting(true)
     try {
-      await apiDelete(`/mrp/assemblies/${sku}`)
+      await apiDelete(`/mrp/assemblies/${assemblyToDelete}`)
       toast.success('Deleted', { description: 'Assembly structure removed.' })
-      setAssemblyDetails(prev => { const next = {...prev}; delete next[sku]; return next; })
-      setExpandedItems(prev => ({...prev, [sku]: false}))
+      setAssemblyDetails(prev => { const next = {...prev}; delete next[assemblyToDelete]; return next; })
+      setExpandedItems(prev => ({...prev, [assemblyToDelete]: false}))
+      setSelectedSku(null)
+      setAssemblyToDelete(null)
+      await fetchAssembliesList()
+      await fetchCatalogData()
     } catch (error) {
       toast.error('Failed', { description: 'Cannot delete linked assembly.' })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
   const displaySku = selectedSubSku || selectedSku
-  const displayCatalogInfo = displaySku ? catalog.find(c => c.model_code === displaySku) : null
+  const displayPartInfo = displaySku ? catalog.find(c => (c.model_code || c.sku || c.part_id) === displaySku) : null
+  const displayAssemblyMeta = selectedSku ? assembliesList.find(a => (a.model_code || a.id || a.sku || a.name) === selectedSku) : null
   const displayAssemblyDetail = selectedSku ? assemblyDetails[selectedSku] : null
-  const currentPrice = displayCatalogInfo?.unit_price ?? 0
+  const currentPrice = displayPartInfo?.price ?? displayPartInfo?.unit_price ?? displayPartInfo?.unit_cost ?? 0
 
   return (
     <>
@@ -206,8 +276,8 @@ export function BomCatalogView() {
       <div className="flex gap-4" style={{ minHeight: 'calc(100vh - 200px)' }}>
         <div className="w-[340px] shrink-0 bg-mrp-panel border border-mrp-border rounded-sm flex flex-col overflow-hidden">
           <div className="p-3 border-b border-mrp-border flex items-center justify-between">
-            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Catalog Directory</span>
-            <button onClick={fetchCatalogData} className="text-mrp-text-muted hover:text-white transition-colors">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Product Assemblies</span>
+            <button onClick={fetchAssembliesList} className="text-mrp-text-muted hover:text-white transition-colors">
               <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
             </button>
           </div>
@@ -215,17 +285,17 @@ export function BomCatalogView() {
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {isLoading ? (
                <div className="flex justify-center py-8 text-mrp-text-muted"><Loader2 className="animate-spin" size={20} /></div>
-            ) : catalog.length === 0 ? (
-               <div className="text-center py-4 text-[12px] text-mrp-text-muted">No items in catalog.</div>
-            ) : catalog.map((item, catalogIndex) => {
-              const identifier = item.model_code
+            ) : assembliesList.length === 0 ? (
+               <div className="text-center py-4 text-[12px] text-mrp-text-muted">No assemblies found.</div>
+            ) : assembliesList.map((item, index) => {
+              const identifier = item.model_code || item.id || item.sku || item.name
               const isExpanded = !!expandedItems[identifier]
               const isSelected = selectedSku === identifier
               const detail = assemblyDetails[identifier]
               const isDetailLoading = loadingAssemblies[identifier]
 
               return (
-                <div key={`catalog-${identifier}-${catalogIndex}`}>
+                <div key={`assembly-${identifier}-${index}`}>
                   <div
                     className={`group flex items-start justify-between p-2.5 cursor-pointer transition-colors rounded-sm border-l-2 ${
                       isSelected && selectedSubSku === null ? 'bg-mrp-app border-mrp-primary' : 'border-transparent hover:bg-mrp-app hover:border-mrp-border'
@@ -238,7 +308,7 @@ export function BomCatalogView() {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className={`text-[13px] font-bold truncate ${isSelected && selectedSubSku === null ? 'text-mrp-primary' : 'text-mrp-text-main'}`}>
-                          {item.model_name || identifier}
+                          {item.name || item.model_name || identifier}
                         </span>
                         {item.description && (
                           <span className="text-[11px] text-mrp-text-secondary truncate mt-0.5">
@@ -301,7 +371,7 @@ export function BomCatalogView() {
             </span>
             {selectedSku && !selectedSubSku && displayAssemblyDetail && (
               <button
-                onClick={() => handleDeleteAssembly(selectedSku)}
+                onClick={() => confirmDeleteAssembly(selectedSku)}
                 className="flex items-center gap-1 px-3 py-1 text-mrp-danger border border-mrp-danger/40 hover:bg-mrp-danger hover:text-white transition-all text-[11px] font-bold uppercase tracking-wider rounded-sm"
               >
                 <Trash2 size={12} /> Clear BOM Map
@@ -314,19 +384,23 @@ export function BomCatalogView() {
               <div className="flex items-start justify-between gap-8">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="font-mono text-mrp-primary font-bold text-[13px]">{displayCatalogInfo?.model_code || displaySku}</span>
+                    <span className="font-mono text-mrp-primary font-bold text-[13px]">
+                      {displayPartInfo?.model_code || displayPartInfo?.sku || displayPartInfo?.part_id || displayAssemblyMeta?.model_code || displayAssemblyMeta?.id || displayAssemblyMeta?.name || displaySku}
+                    </span>
                     <span className="px-2 py-0.5 border border-mrp-primary/30 bg-mrp-primary/10 text-mrp-primary text-[9px] uppercase font-bold tracking-widest rounded-sm">
                       {selectedSubSku ? 'SUB-COMPONENT' : (displayAssemblyDetail ? 'PRODUCT ASSEMBLY' : 'RAW MATERIAL')}
                     </span>
                   </div>
                   <h2 className="text-2xl font-bold text-white mb-2">
-                    {selectedSubSku ? (catalog.find(c => c.model_code === displaySku)?.model_name || `Component ${displaySku}`) : (displayCatalogInfo?.model_name || displayAssemblyDetail?.name || 'Unregistered Model')}
+                    {selectedSubSku 
+                      ? (displayPartInfo?.model_name || displayPartInfo?.name || `Component ${displaySku}`) 
+                      : (displayAssemblyMeta?.name || displayAssemblyMeta?.model_name || displayAssemblyDetail?.name || 'Unregistered Model')}
                   </h2>
                   <p className="text-mrp-text-muted text-sm leading-relaxed">
-                    {!selectedSubSku && (displayCatalogInfo?.description || displayAssemblyDetail?.description || 'No system description provided.')}
+                    {!selectedSubSku && (displayAssemblyMeta?.description || displayAssemblyDetail?.description || 'No system description provided.')}
                   </p>
                 </div>
-                {!selectedSubSku && (
+                {!selectedSubSku && currentPrice > 0 && (
                   <div className="text-right shrink-0">
                     <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1">Valuation Cost</div>
                     <div className="text-3xl font-bold font-mono text-white">${currentPrice.toFixed(2)}</div>
@@ -354,8 +428,8 @@ export function BomCatalogView() {
                         ) : whereUsedData.length === 0 ? (
                           <tr><td colSpan={2} className="px-4 py-4 text-center text-[12px] text-mrp-text-muted">Part is not utilized in any active assembly configurations.</td></tr>
                         ) : whereUsedData.map((u, wuIndex) => {
-                          const catalogMatch = catalog.find(c => c.model_code === u.parent_model)
-                          const displayName = catalogMatch?.model_name || u.parent_model
+                          const assemblyMatch = assembliesList.find(a => (a.model_code || a.id || a.name) === u.parent_model)
+                          const displayName = assemblyMatch?.name || assemblyMatch?.model_name || u.parent_model
 
                           return (
                             <tr key={`wu-${u.parent_model}-${wuIndex}`} className="hover:bg-mrp-app/50 transition-colors">
@@ -407,26 +481,49 @@ export function BomCatalogView() {
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
           <div className="bg-mrp-panel border border-mrp-border w-full max-w-2xl rounded-sm shadow-2xl flex flex-col">
             <div className="p-4 border-b border-mrp-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Create BOM Link</h3>
+              <h3 className="text-lg font-bold text-white">Create New Product & BOM</h3>
               <button onClick={() => setShowModal(false)} className="text-mrp-text-muted hover:text-white transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Target Catalog SKU</label>
-                <input
-                  value={modalName}
-                  onChange={(e) => setModalName(e.target.value)}
-                  className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted font-mono"
-                  placeholder="Enter parent SKU (e.g., ZW-X1-TITAN)"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-mrp-border pb-6">
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Model Code (SKU)</label>
+                  <input
+                    value={bomForm.model_code}
+                    onChange={(e) => setBomForm({ ...bomForm, model_code: e.target.value })}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted font-mono"
+                    placeholder="e.g., ZW-X1-TITAN"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Product Name</label>
+                  <input
+                    value={bomForm.model_name}
+                    onChange={(e) => setBomForm({ ...bomForm, model_name: e.target.value })}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted"
+                    placeholder="e.g., Titan Extreme 15"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Valuation Cost ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={bomForm.price}
+                    onChange={(e) => setBomForm({ ...bomForm, price: e.target.value })}
+                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted font-mono"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Required Components</label>
+                  <label className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">Required Components (BOM)</label>
                   <button onClick={addRow} className="text-mrp-primary text-[12px] font-bold flex items-center gap-1 hover:underline">
                     <PlusCircle size={13} /> Add Sub-Part
                   </button>
@@ -442,7 +539,7 @@ export function BomCatalogView() {
                         <input
                           type="text"
                           autoComplete="off"
-                          placeholder="Search SKU or Name..."
+                          placeholder="Search Part SKU or Name..."
                           value={activeRowId === row.id ? skuQuery : (row.sku ? `${row.sku} (${row.name})` : '')}
                           onFocus={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect()
@@ -519,6 +616,56 @@ export function BomCatalogView() {
           </div>
         )
       })()}
+
+      {assemblyToDelete && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !isDeleting && setAssemblyToDelete(null)} />
+          <div className="relative w-full max-w-md bg-mrp-panel border border-mrp-border rounded-sm shadow-2xl flex flex-col transform transition-all">
+            
+            <div className="px-6 py-4 border-b border-mrp-border flex items-center justify-between bg-mrp-danger/5">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <AlertTriangle size={18} className="text-mrp-danger" /> 
+                Confirm Deletion
+              </h2>
+              <button 
+                onClick={() => !isDeleting && setAssemblyToDelete(null)} 
+                className="text-mrp-text-muted hover:text-white transition-colors p-1"
+                disabled={isDeleting}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-[13px] text-mrp-text-secondary leading-relaxed">
+                Are you sure you want to permanently delete the assembly configuration for <strong className="text-white font-medium">{assemblyToDelete}</strong>?
+              </p>
+              <p className="text-[13px] text-mrp-text-secondary mt-2">
+                This action cannot be undone and will remove the entire Bill of Materials mapping.
+              </p>
+            </div>
+
+            <div className="px-6 py-4 border-t border-mrp-border bg-mrp-app/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setAssemblyToDelete(null)} 
+                disabled={isDeleting} 
+                className="px-4 py-2 text-[13px] font-medium text-mrp-text-muted hover:text-white transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeDeleteAssembly} 
+                disabled={isDeleting} 
+                className="px-4 py-2 bg-[#C9190B] text-white text-[13px] font-medium rounded-sm hover:bg-[#A31509] transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {isDeleting ? 'Deleting...' : 'Delete BOM Map'}
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
     </>
   )
 }
