@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react';
-import { Search, LogOut, ShieldCheck, Lock, Eye, EyeOff, X } from 'lucide-react';
+import { Search, Bell, LogOut, ShieldCheck, Lock, Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -335,6 +335,8 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
+        <NotificationBell />
+        <div className="h-5 w-px bg-mrp-border" />
         <UserMenu />
       </div>
     </header>
