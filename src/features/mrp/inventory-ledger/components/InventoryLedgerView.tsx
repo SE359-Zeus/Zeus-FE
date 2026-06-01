@@ -116,14 +116,18 @@ export function InventoryLedgerView() {
         params, 
         responseType: 'blob' 
       })
+      const fileData = response.data !== undefined ? response.data : response;
       
-      const url = window.URL.createObjectURL(new Blob([response.data as any]))
+      const blob = new Blob([fileData as any], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', `inventory-ledger-${new Date().toISOString().slice(0, 10)}.csv`)
       document.body.appendChild(link)
       link.click()
+      
       link.remove()
+      window.URL.revokeObjectURL(url)
       
       toast.success('CSV Exported', { description: 'Export completed successfully.' })
     } catch (error) {
@@ -267,7 +271,16 @@ export function InventoryLedgerView() {
                       </td>
                       <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{txn.running_balance}</td>
                       <td className="py-3 px-4 text-[13px] text-mrp-text-secondary whitespace-nowrap">{txn.location}</td>
-                      <td className="py-3 px-4 text-[13px] text-mrp-text-muted whitespace-nowrap">{txn.timestamp}</td>
+                      <td className="py-3 px-4 text-[13px] text-mrp-text-muted whitespace-nowrap">
+                        {new Date(txn.timestamp).toLocaleString('en-EN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </td>
                       <td className="py-3 px-4 text-[13px] text-mrp-text-secondary">{txn.operator}</td>
                     </tr>
                   )

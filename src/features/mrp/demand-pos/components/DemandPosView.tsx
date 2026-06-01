@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight, Loader2, RefreshCw, ChevronDown, ChevronUp, MapPin, Package } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, Loader2, RefreshCw, ChevronDown, ChevronUp, MapPin, Package, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiGet, apiPost } from '@/lib/axios.client'
 
@@ -132,16 +132,6 @@ export function DemandPosView() {
     }
   }
 
-  const handleTriggerPO = async () => {
-    try {
-      await apiPost('/mrp/demand/generate-pos')
-      toast.success('PO Task Started', { description: 'Background task to generate draft POs has started.' })
-      setTimeout(handleRefreshAll, 1500)
-    } catch (error: any) {
-      toast.error('Backend Error', { description: error?.response?.data?.message || 'Failed to generate POs.' })
-    }
-  }
-
   const handleToggleRow = async (orderId: string) => {
     const isExpanded = !!expandedRows[orderId]
     setExpandedRows(prev => ({ ...prev, [orderId]: !isExpanded }))
@@ -189,8 +179,6 @@ export function DemandPosView() {
     { label: 'Total Units Required', value: isMetricsLoading ? '...' : (metrics?.total_units_required?.toLocaleString() ?? 0), color: 'text-white', accent: null },
   ]
 
-  const displayedDemands = demands.filter(demand => formatStatus(demand.status) !== 'Ready to Build')
-
   return (
     <div className="flex flex-col h-full w-full">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
@@ -206,12 +194,6 @@ export function DemandPosView() {
             className="p-2 border border-mrp-border rounded-sm bg-mrp-panel text-mrp-text-secondary hover:text-white transition-colors"
           >
             <RefreshCw size={16} className={isLoading || isMetricsLoading ? "animate-spin" : ""} />
-          </button>
-          <button
-            onClick={handleTriggerPO}
-            className="bg-mrp-primary hover:bg-mrp-primary-hover text-white text-sm font-medium py-2 px-4 rounded-sm transition-colors flex items-center gap-2 border border-transparent shadow-sm self-start md:self-auto"
-          >
-            <Plus size={16} /> Auto-Draft POs
           </button>
         </div>
       </div>
@@ -267,11 +249,11 @@ export function DemandPosView() {
                     Loading demand data...
                   </td>
                 </tr>
-              ) : displayedDemands.length === 0 ? (
+              ) : demands.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-[13px] text-mrp-text-muted">No demand records found.</td>
                 </tr>
-              ) : displayedDemands.map((demand) => {
+              ) : demands.map((demand) => {
                 const isExpanded = !!expandedRows[demand.order_id]
                 const uiStatus = formatStatus(demand.status)
                 const uiPriority = formatPriority(demand.priority)
@@ -358,19 +340,13 @@ export function DemandPosView() {
                                     <tr>
                                       <th className="p-2.5">Component SKU</th>
                                       <th className="p-2.5 text-right">Quantity Required</th>
-                                      <th className="p-2.5 text-right">Assigned Bin Location</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-mrp-border/60 font-mono">
                                     {pickListData.map((comp, idx) => (
                                       <tr key={idx} className="hover:bg-mrp-app/30 transition-colors">
-                                        <td className="p-2.5 text-white">{comp.sku}</td>
+                                        <td className="p-2.5 text-white">{comp.sku.replace(/^PART-/i, '')}</td>
                                         <td className="p-2.5 text-right text-white">{comp.quantity}</td>
-                                        <td className="p-2.5 text-right">
-                                          <span className={`px-2 py-0.5 rounded-sm text-[11px] font-bold ${comp.bin_location === 'UNASSIGNED' ? 'bg-mrp-danger/10 text-mrp-danger border border-mrp-danger/20' : 'bg-mrp-app border border-mrp-border text-mrp-text-secondary'}`}>
-                                            {comp.bin_location}
-                                          </span>
-                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>

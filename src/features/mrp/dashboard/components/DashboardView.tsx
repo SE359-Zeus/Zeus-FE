@@ -129,13 +129,17 @@ export function DashboardView() {
         responseType: 'blob' 
       })
       
-      const url = window.URL.createObjectURL(new Blob([response.data as any]))
+      const fileData = response.data !== undefined ? response.data : response;
+      const blob = new Blob([fileData as any], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', `material-readiness-${new Date().toISOString().slice(0, 10)}.csv`)
       document.body.appendChild(link)
       link.click()
+      
       link.remove()
+      window.URL.revokeObjectURL(url)
       
       toast.success('CSV Exported', { description: 'Readiness matrix exported successfully.' })
     } catch (error) {
