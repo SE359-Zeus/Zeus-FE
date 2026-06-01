@@ -15,7 +15,7 @@ interface OrderModel {
   clientName: string
   requiredDate: string
   totalValue: number
-  status: 'PENDING' | 'PROCESSING' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'PROCESSING' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED' | string;
   locked: boolean
   destinationAddress: string
   items?: LineItem[]
@@ -57,15 +57,27 @@ export function SalesOrdersView() {
       if (searchQuery.trim() !== '') params.search = searchQuery
 
       const [metricsRes, ordersRes] = await Promise.all([
-        apiGet<any>('/sales/metrics'),
+        apiGet<any>('/sales/metrics').catch(() => ({ data: { total_pending: 0, active_processing_value: 0, completed_24h: 0 } })),
         apiGet<any>('/sales/orders', { params })
       ])
       
       if (metricsRes.data) setMetrics(metricsRes.data)
       
-      const dataList = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data?.data || [])
-      setOrders(dataList)
-      setTotalItems(ordersRes.metadata?.total || ordersRes.data?.metadata?.total || dataList.length)
+      const rawDataList = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data?.data || [])
+      
+      const mappedList = rawDataList.map((o: any) => ({
+        ...o,
+        orderId: o.id || o.orderId,
+        clientName: o.client?.name || o.client_name || o.clientName || 'Unknown Client',
+        requiredDate: o.required_date || o.requiredDate,
+        totalValue: o.total_value || o.totalValue || 0,
+        status: typeof o.status === 'object' ? o.status?.code : (o.status || 'PENDING'),
+        locked: o.locked || false,
+        destinationAddress: o.destination_address || o.destinationAddress,
+      }))
+
+      setOrders(mappedList)
+      setTotalItems(ordersRes.metadata?.total || ordersRes.data?.metadata?.total || mappedList.length)
     } catch (error) {
       toast.error('Failed to load data', { description: 'Unable to connect to the server.' })
     } finally {
@@ -87,11 +99,19 @@ export function SalesOrdersView() {
     setIsDetailLoading(true)
     try {
       const res = await apiGet<any>(`/sales/orders/${order.orderId}`)
-      if (res.data) {
+      const payload = res.data?.data || res.data; // Lấy đúng cục data của axios bọc ngoài payload API
+
+      if (payload?.order) {
         setSelectedOrder({ 
           ...order,
-          ...res.data.order,
-          items: res.data.items 
+          destinationAddress: payload.order.destination_address || payload.order.destinationAddress || order.destinationAddress,
+          status: typeof payload.order.status === 'object' ? payload.order.status.code : (payload.order.status || order.status),
+          locked: payload.order.locked ?? order.locked,
+          items: payload.items?.map((item: any) => ({
+            sku: item.product_code || item.sku, // Đã fix: Lấy product_code theo cấu trúc mới
+            requestedQty: item.requested_qty || item.requestedQty || 0,
+            unitPrice: item.unit_price || item.unitPrice || 0
+          })) || []
         })
       }
     } catch (error) {
@@ -229,7 +249,7 @@ export function SalesOrdersView() {
 
         <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
           <span className="text-[13px] text-mrp-text-muted">
-            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{(page - 1) * perPage + orders.length} of {totalItems} Entries
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} of {totalItems} Entries
           </span>
           <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
             <div className="flex items-center gap-2">
@@ -335,14 +355,14 @@ export function SalesOrdersView() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-mrp-border">
-                          {selectedOrder.items?.map((item, idx) => (
+                          {selectedOrder.items?.map((item: any, idx: number) => (
                             <tr key={idx} className="hover:bg-mrp-app/50 transition-colors">
                               <td className="px-3 py-2 text-[13px] font-mono text-white">{item.sku}</td>
                               <td className="px-3 py-2 text-[13px] font-mono text-white text-right">{item.requestedQty}</td>
                               <td className="px-3 py-2 text-[13px] font-mono text-mrp-text-secondary text-right">{formatCurrency(item.unitPrice)}</td>
                             </tr>
                           ))}
-                          {!selectedOrder.items && <tr><td colSpan={3} className="text-center py-4 text-mrp-text-muted text-xs">No items</td></tr>}
+                          {(!selectedOrder.items || selectedOrder.items.length === 0) && <tr><td colSpan={3} className="text-center py-4 text-mrp-text-muted text-xs">No items found</td></tr>}
                         </tbody>
                       </table>
                     </div>
