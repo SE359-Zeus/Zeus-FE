@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, Edit, X, Users, Building, User, Plus, Loader2, Trash2, AlertTriangle } from 'lucide-react'
+import { Search, Filter, Edit, X, Users, Building, User, Plus, Loader2, Trash2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/axios.client'
 
@@ -20,6 +20,10 @@ export function CustomersView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [tierFilter, setTierFilter] = useState('ALL')
   
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [totalItems, setTotalItems] = useState(0)
+
   const [editingCustomer, setEditingCustomer] = useState<ClientModel | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
@@ -31,13 +35,18 @@ export function CustomersView() {
   const fetchClients = async () => {
     setIsLoading(true)
     try {
-      const params: any = { page: 1, pageSize: 50 }
+      const params: any = { page, per_page: perPage }
       if (tierFilter !== 'ALL') params.tiers = tierFilter
+      if (searchQuery.trim() !== '') params.search = searchQuery
 
-      const response = await apiGet<ClientModel[]>('/sales/clients', { params })
-      setClients(response.data || [])
+      const response = await apiGet<any>('/sales/clients', { params })
+      const dataList = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+      
+      setClients(dataList)
+      setTotalItems(response.metadata?.total || response.data?.metadata?.total || dataList.length)
     } catch (error) {
       toast.error('Error loading data', { description: 'Unable to connect to the server.' })
+      setClients([])
     } finally {
       setIsLoading(false)
     }
@@ -45,12 +54,14 @@ export function CustomersView() {
 
   useEffect(() => {
     fetchClients()
-  }, [tierFilter])
+  }, [tierFilter, page, perPage])
 
-  const filteredCustomers = clients.filter(c => 
-    c.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setPage(1)
+      fetchClients()
+    }
+  }
 
   const handleCreate = async () => {
     if (!formData.name) return toast.error('Validation Error', { description: 'Client name is required.' })
@@ -118,6 +129,8 @@ export function CustomersView() {
     setEditingCustomer(client)
   }
 
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
+
   return (
     <>
       <div className="flex items-center justify-between mb-6 shrink-0">
@@ -134,12 +147,12 @@ export function CustomersView() {
         <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex flex-wrap items-center gap-4">
           <div className="relative w-72">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" />
-            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by Client ID or Name..." className="w-full bg-mrp-panel border border-mrp-border rounded-sm text-[13px] pl-9 pr-3 py-1.5 focus:outline-none focus:border-mrp-primary text-white placeholder-mrp-text-muted" />
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearchSubmit} placeholder="Search by Client ID or Name (Press Enter)..." className="w-full bg-mrp-panel border border-mrp-border rounded-sm text-[13px] pl-9 pr-3 py-1.5 focus:outline-none focus:border-mrp-primary text-white placeholder-mrp-text-muted" />
           </div>
           
           <div className="flex items-center border border-mrp-border bg-mrp-panel rounded-sm px-2 py-1.5">
             <Filter size={14} className="text-mrp-text-muted mr-2" />
-            <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
+            <select value={tierFilter} onChange={(e) => { setTierFilter(e.target.value); setPage(1); }} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
               <option value="ALL" className="bg-mrp-panel">All Tiers</option>
               <option value="B2B" className="bg-mrp-panel">B2B (Enterprise)</option>
               <option value="B2C" className="bg-mrp-panel">B2C (Retail)</option>
@@ -165,10 +178,12 @@ export function CustomersView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-mrp-border bg-mrp-app">
-              {filteredCustomers.length > 0 ? (
-                filteredCustomers.map((customer) => (
+              {clients.length > 0 ? (
+                clients.map((customer) => (
                   <tr key={customer.id} className="hover:bg-mrp-panel transition-colors group">
-                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary truncate max-w-[120px]">{customer.id}</td>
+                    <td className="py-3 px-4 font-mono text-[13px] text-white truncate max-w-[120px]">
+                      CLI-{String(customer.id).substring(0, 6).toUpperCase()}
+                    </td>
                     <td className="py-3 px-4 text-[13px] text-white font-medium flex items-center gap-2">
                       {customer.tier === 'B2B' ? <Building size={14} className="text-mrp-text-muted" /> : <User size={14} className="text-mrp-text-muted" />}
                       {customer.name}
@@ -200,6 +215,58 @@ export function CustomersView() {
             </tbody>
           </table>
         </div>
+
+        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
+          <span className="text-[13px] text-mrp-text-muted">
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} of {totalItems} Entries
+          </span>
+          <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select 
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-2">
+              <span>Page</span>
+              <select 
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <span>of {totalPages}</span>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {(editingCustomer || showCreateModal) && (
@@ -218,7 +285,7 @@ export function CustomersView() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Client ID</label>
-                    <input type="text" value={editingCustomer.id} disabled className="w-full bg-mrp-app/50 border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-mrp-text-secondary font-mono cursor-not-allowed truncate" />
+                    <input type="text" value={`CLI-${String(editingCustomer.id).substring(0, 6).toUpperCase()}`} disabled className="w-full bg-mrp-app/50 border border-mrp-border rounded-sm px-3 py-2 text-[13px] text-mrp-text-secondary font-mono cursor-not-allowed truncate" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-1.5">Total Orders</label>

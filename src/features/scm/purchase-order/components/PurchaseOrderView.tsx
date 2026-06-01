@@ -168,7 +168,7 @@ export function PurchaseOrderView() {
     const status = (po.status ?? po.Status) as POStatus
     const totalValue = po.totalValue ?? po.total_value ?? po.TotalValue ?? 0
     
-    const rawCreated = po.createdDate ?? po.created_date ?? po.CreatedAt
+    const rawCreated = po.createdDate ?? po.created_at ?? po.CreatedAt
     const createdDate = rawCreated ? new Date(rawCreated).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) : ''
     
     const rawExpected = po.expectedDelivery ?? po.expected_delivery ?? po.ExpectedDelivery
@@ -263,10 +263,8 @@ export function PurchaseOrderView() {
 
     const payload: CreateCustomPORequest = {
       id: poForm.poNumber.trim(),
-      expected_delivery: poForm.deliveryDate ? new Date(poForm.deliveryDate).toISOString() : new Date().toISOString(),
       vendor_id: vendorId,
       notes: poForm.notes || '',
-      target_build: poForm.targetBuild.trim() || undefined,
       items: formItems.map(fi => ({ sku: fi.sku, qty: fi.qty }))
     }
 
@@ -459,7 +457,7 @@ export function PurchaseOrderView() {
                     checked={filtered.length > 0 && filtered.every((p) => selectedRows.has(p.id))}
                     onChange={(e) => toggleAll(e.target.checked)} />
                 </th>
-                {['PO ID', 'Vendor', 'Target Build', 'Items', 'Value', 'Status', 'Created', 'ETA', ''].map((col) => (
+                {['PO ID', 'Supplier', 'Items', 'Value', 'Status', 'Created', ''].map((col) => (
                   <th key={col} className={`py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap ${
                     ['Value', ''].includes(col) ? 'text-right' : ''
                   }`}>{col}</th>
@@ -482,7 +480,6 @@ export function PurchaseOrderView() {
                       </td>
                       <td className="py-3 px-4 font-mono text-[13px] text-white whitespace-nowrap">{po.id}</td>
                       <td className="py-3 px-4 text-[13px] text-white font-medium">{po.vendor}</td>
-                      <td className="py-3 px-4 text-[13px] text-mrp-text-secondary">{po.targetBuild}</td>
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted">{po.lineItems.length}</td>
                       <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{fmt(po.totalValue)}</td>
                       <td className="py-3 px-4">
@@ -492,7 +489,6 @@ export function PurchaseOrderView() {
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{po.createdDate}</td>
-                      <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-muted whitespace-nowrap">{po.expectedDelivery}</td>
                       <td className="py-3 px-4 text-right">
                         <button onClick={() => toggleRow(po.id)}
                           className="p-1 text-mrp-text-muted hover:text-white transition-colors cursor-pointer">
@@ -580,7 +576,7 @@ export function PurchaseOrderView() {
                                       <div className="flex items-start gap-2 px-3 py-2 border border-mrp-primary/30 bg-mrp-primary/5 rounded-sm text-[11px] text-mrp-text-secondary max-w-xs">
                                         <Info size={13} className="text-mrp-primary mt-0.5 flex-shrink-0" />
                                         <span>
-                                          Goods Receipt <span className="font-mono text-mrp-primary">{po.id}-GR-001</span> has been created and is awaiting inspection on the{' '}
+                                          A Goods Receipt for <span className="font-mono text-mrp-primary">{po.id}</span> has been created and is awaiting inspection on the{' '}
                                           <a href="/scm/goods-receipt" className="text-mrp-primary underline hover:text-white transition-colors">Goods Receipt page</a>.
                                         </span>
                                       </div>
@@ -676,7 +672,7 @@ export function PurchaseOrderView() {
             {/* Scrollable Body */}
             <div className="p-6 space-y-5 overflow-y-auto flex-1">
 
-              {/* Row 1: PO Number + Delivery */}
+              {/* Row 1: PO Number + Supplier */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">PO Number</label>
@@ -689,20 +685,6 @@ export function PurchaseOrderView() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Expected Delivery</label>
-                  <input
-                    value={poForm.deliveryDate}
-                    onChange={(e) => setPoForm((f) => ({ ...f, deliveryDate: e.target.value }))}
-                    disabled={createCustomMutation.isPending}
-                    type="date"
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              {/* Supplier & Target Build */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
                   <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Supplier</label>
                   <select
                     value={poForm.supplier}
@@ -713,16 +695,6 @@ export function PurchaseOrderView() {
                     <option value="">Select supplier...</option>
                     {Object.keys(SUPPLIER_SKUS).map(s => <option key={s}>{s}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-2">Target Build</label>
-                  <input
-                    value={poForm.targetBuild}
-                    onChange={(e) => setPoForm((f) => ({ ...f, targetBuild: e.target.value }))}
-                    disabled={createCustomMutation.isPending}
-                    placeholder="e.g. Orion-ApexIndustrialParts"
-                    className="w-full bg-mrp-app border border-mrp-border text-white px-3 py-2 text-[13px] focus:border-mrp-primary focus:outline-none rounded-sm placeholder:text-mrp-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
                 </div>
               </div>
 

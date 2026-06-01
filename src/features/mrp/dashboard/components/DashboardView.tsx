@@ -1,381 +1,406 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Printer, ChevronDown, ChevronUp, ArrowRight, Filter, Download, TrendingUp } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Search, ChevronDown, ChevronUp, Filter, Download, TrendingUp, Loader2, Package, RefreshCw, AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
+import { apiGet, apiPost } from '@/lib/axios.client'
+
+interface ComponentStatus {
+  part_id: string
+  component_sku?: string
+  sku?: string
+  total_required_qty: number
+  available_qty: number
+  is_shortage: boolean
+}
 
 interface OrderRow {
-  id: string
-  orderId: string
-  targetBuild: string
-  qty: number
-  status: 'shortage' | 'clear' | 'partial'
-  missingComponents: string
-  components?: { sku: string; required: number; onHand: number; shortage: number }[]
+  order_id: string
+  target_build: string
+  quantity: number
+  status: string
+  deficit_breakdown?: ComponentStatus[]
 }
 
-const mockOrders: OrderRow[] = [
-  {
-    id: '1',
-    orderId: 'ORD-101',
-    targetBuild: 'Zeus Workstation X1',
-    qty: 10,
-    status: 'shortage',
-    missingComponents: '10x SOC-XM100-PRO, 20x RAM-64G-DDR5',
-    components: [
-      { sku: 'SOC-XM100-PRO', required: 10, onHand: 0, shortage: 10 },
-      { sku: 'RAM-64G-DDR5', required: 20, onHand: 5, shortage: 15 },
-    ],
-  },
-  {
-    id: '2',
-    orderId: 'ORD-102',
-    targetBuild: 'Titan Gaming Pro',
-    qty: 5,
-    status: 'clear',
-    missingComponents: '-',
-    components: [
-      { sku: 'GPU-RTX5080-M', required: 5, onHand: 12, shortage: 0 },
-      { sku: 'PSU-GAN-240W', required: 5, onHand: 8, shortage: 0 },
-    ],
-  },
-  {
-    id: '3',
-    orderId: 'ORD-103',
-    targetBuild: 'Aero Ultrabook S',
-    qty: 25,
-    status: 'clear',
-    missingComponents: '-',
-    components: [
-      { sku: 'SOC-XM100-LT', required: 25, onHand: 30, shortage: 0 },
-      { sku: 'BATT-LIPO-99W', required: 25, onHand: 40, shortage: 0 },
-    ],
-  },
-]
-
-const statusConfig = {
-  shortage: {
-    bg: 'bg-mrp-danger/10',
-    border: 'border-mrp-danger/20',
-    text: 'text-mrp-danger',
-    label: 'Shortage',
-    pulse: true,
-  },
-  clear: {
-    bg: 'bg-mrp-success/10',
-    border: 'border-mrp-success/20',
-    text: 'text-mrp-success',
-    label: 'Ready to Build',
-    pulse: false,
-  },
-  partial: {
-    bg: 'bg-mrp-warning/10',
-    border: 'border-mrp-warning/20',
-    text: 'text-mrp-warning',
-    label: 'Partial',
-    pulse: true,
-  },
+interface DashboardMetrics {
+  total_open_orders: number
+  supply_readiness_rate: number
+  components_in_shortage: number
+  blocked_orders: number
 }
-
-const kpiCards = [
-  {
-    label: 'Total Open Orders',
-    value: '1,248',
-    valueClass: 'text-white',
-    accent: null,
-    badge: (
-      <span className="text-[10px] text-mrp-success flex items-center gap-0.5">
-        <TrendingUp size={12} />
-        +12.5%
-      </span>
-    ),
-  },
-  {
-    label: 'Components In Shortage',
-    value: '24',
-    valueClass: 'text-mrp-danger',
-    accent: 'border-l-4 border-l-mrp-danger',
-    badge: <span className="animate-pulse flex h-2 w-2 rounded-full bg-mrp-danger" />,
-  },
-  {
-    label: 'Shortage Blocked Orders',
-    value: '396',
-    valueClass: 'text-mrp-danger',
-    accent: 'border-l-4 border-l-mrp-danger',
-    badge: <span className="text-[10px] text-mrp-text-muted">32% of Total</span>,
-  },
-  {
-    label: 'Supply Readiness',
-    value: '88.4%',
-    valueClass: 'text-mrp-success',
-    accent: 'border-l-4 border-l-mrp-success',
-    badge: <span className="text-[10px] text-mrp-text-muted">Target: 95%</span>,
-  },
-]
 
 export function DashboardView() {
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set(['1']))
-  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set(['1']))
+  const [orders, setOrders] = useState<OrderRow[]>([])
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMetricsLoading, setIsMetricsLoading] = useState(true)
+  
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+  const [detailData, setDetailData] = useState<Record<string, ComponentStatus[]>>({})
+  const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({})
+  
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
-  const toggleRow = (id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [totalItems, setTotalItems] = useState(0)
+
+  const fetchMetrics = async () => {
+    setIsMetricsLoading(true)
+    try {
+      const res = await apiGet<DashboardMetrics>('/mrp/readiness/metrics')
+      if (res.data) setMetrics(res.data)
+    } catch (error) {
+      toast.error('Metrics Error', { description: 'Cannot load dashboard metrics.' })
+    } finally {
+      setIsMetricsLoading(false)
+    }
   }
 
-  const toggleSelect = (id: string) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const fetchTableData = async () => {
+    setIsLoading(true)
+    try {
+      const params: any = { page, per_page: perPage }
+      if (statusFilter !== 'ALL') params.status = statusFilter 
+      if (searchQuery.trim() !== '') params.search = searchQuery
+
+      const res = await apiGet<any>('/mrp/readiness', { params })
+      const dataList = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+      setOrders(dataList)
+      setTotalItems(res.metadata?.total || res.data?.metadata?.total || dataList.length)
+    } catch (error) {
+      toast.error('Table Error', { description: 'Cannot load readiness table data.' })
+      setOrders([])
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  const handleRefreshAll = () => {
+    fetchMetrics()
+    fetchTableData()
+  }
+
+  useEffect(() => {
+    fetchMetrics()
+  }, [])
+
+  useEffect(() => {
+    fetchTableData()
+  }, [statusFilter, page, perPage])
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setPage(1)
+      fetchTableData()
+    }
+  }
+
+  const handleToggleRow = async (orderId: string) => {
+    const isCurrentlyExpanded = !!expandedRows[orderId]
+    setExpandedRows(prev => ({ ...prev, [orderId]: !isCurrentlyExpanded }))
+
+    if (!isCurrentlyExpanded && !detailData[orderId]) {
+      setLoadingDetails(prev => ({ ...prev, [orderId]: true }))
+      try {
+        const res = await apiGet<OrderRow>(`/mrp/readiness/${orderId}`)
+        if (res.data?.deficit_breakdown) {
+          setDetailData(prev => ({ ...prev, [orderId]: res.data?.deficit_breakdown as ComponentStatus[] }))
+        } else {
+          setDetailData(prev => ({ ...prev, [orderId]: [] }))
+        }
+      } catch (error) {
+        toast.error('Detail Error', { description: 'Cannot load shortage breakdown for this order.' })
+      } finally {
+        setLoadingDetails(prev => ({ ...prev, [orderId]: false }))
+      }
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const params: any = {}
+      if (statusFilter !== 'ALL') params.status = statusFilter
+      if (searchQuery.trim() !== '') params.search = searchQuery
+
+      const response = await apiGet('/mrp/readiness/export', { 
+        params, 
+        responseType: 'blob' 
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([response.data as any]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `material-readiness-${new Date().toISOString().slice(0, 10)}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      
+      toast.success('CSV Exported', { description: 'Readiness matrix exported successfully.' })
+    } catch (error) {
+      toast.error('Export Failed', { description: 'Could not download the CSV file.' })
+    }
+  }
+
+  const renderStatusBadge = (status: string) => {
+    const s = status?.toLowerCase()
+    if (s === 'clear_to_build') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] font-bold uppercase bg-mrp-success/10 text-mrp-success border border-mrp-success/20">
+          <span className="w-1 h-1 rounded-full bg-mrp-success"></span>
+          Clear
+        </span>
+      )
+    }
+    if (s === 'partial') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] font-bold uppercase bg-mrp-warning/10 text-mrp-warning border border-mrp-warning/20">
+          <span className="w-1 h-1 rounded-full bg-mrp-warning"></span>
+          Partial
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] font-bold uppercase bg-mrp-danger/10 text-mrp-danger border border-mrp-danger/20 animate-pulse">
+        <span className="w-1.5 h-1.5 rounded-full bg-mrp-danger"></span>
+        Shortage
+      </span>
+    )
+  }
+
+  const formattedReadinessRate = metrics?.supply_readiness_rate 
+    ? (Math.ceil(metrics.supply_readiness_rate * 100) / 100).toFixed(2)
+    : '0.00'
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
 
   return (
-    <>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+    <div className="flex-1 bg-mrp-app p-6 overflow-y-auto space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-mrp-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-white m-0">Orchestrator Dashboard</h1>
-          <p className="text-sm text-mrp-text-muted mt-1">
-            Real-time material readiness and production blockage monitoring.
-          </p>
+          <h1 className="text-xl font-bold text-white tracking-tight">Material Readiness Matrix</h1>
+          <p className="text-[13px] text-mrp-text-secondary mt-1">Analyze actual component inventory status based on the order list.</p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => toast.success('Report Exported', { description: 'Dashboard report downloaded' })}
-            className="px-4 py-2 border border-mrp-border bg-transparent text-white text-sm font-medium hover:bg-mrp-panel transition-colors flex items-center gap-2 rounded-sm"
-          >
-            <Download size={16} />
-            Export Report
+        <div className="flex items-center gap-2">
+          <button onClick={handleRefreshAll} className="p-2 border border-mrp-border rounded-sm bg-mrp-panel text-mrp-text-secondary hover:text-white transition-colors">
+            <RefreshCw size={16} className={isLoading || isMetricsLoading ? "animate-spin" : ""} />
+          </button>
+          <button onClick={handleExport} className="flex items-center gap-2 px-3 py-2 border border-mrp-border rounded-sm bg-mrp-panel text-[13px] font-medium text-mrp-text-secondary hover:text-white transition-colors">
+            <Download size={14} /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {kpiCards.map((card) => (
-          <div
-            key={card.label}
-            className={`bg-mrp-panel border border-mrp-border p-4 flex flex-col justify-between rounded-sm ${card.accent ?? ''}`}
-          >
-            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
-              {card.label}
-            </span>
-            <div className="flex items-baseline justify-between mt-3">
-              <span className={`font-mono font-bold text-2xl ${card.valueClass}`}>{card.value}</span>
-              {card.badge}
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4 flex items-center justify-between shadow-sm relative overflow-hidden group">
+          <div className="space-y-1 z-10">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider block">Total Active Orders</span>
+            <span className="text-2xl font-semibold text-white block tracking-tight font-mono">{isMetricsLoading ? '...' : metrics?.total_open_orders ?? 0}</span>
           </div>
-        ))}
+          <div className="p-2.5 bg-mrp-border/40 rounded-sm text-mrp-text-secondary group-hover:text-mrp-primary transition-colors"><Package size={20} /></div>
+        </div>
+        <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4 flex items-center justify-between shadow-sm relative overflow-hidden group">
+          <div className="space-y-1 z-10">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider block">Supply Readiness Rate</span>
+            <span className="text-2xl font-semibold text-mrp-success block tracking-tight font-mono">{isMetricsLoading ? '...' : `${formattedReadinessRate}%`}</span>
+          </div>
+          <div className="p-2.5 bg-mrp-success/10 border border-mrp-success/20 rounded-sm text-mrp-success"><CheckCircle2 size={20} /></div>
+        </div>
+        <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4 flex items-center justify-between shadow-sm relative overflow-hidden group">
+          <div className="space-y-1 z-10">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider block">Blocked Orders</span>
+            <span className="text-2xl font-semibold text-mrp-danger block tracking-tight font-mono">{isMetricsLoading ? '...' : metrics?.blocked_orders ?? 0}</span>
+          </div>
+          <div className="p-2.5 bg-mrp-danger/10 border border-mrp-danger/20 rounded-sm text-mrp-danger"><AlertTriangle size={20} className="animate-pulse" /></div>
+        </div>
+        <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4 flex items-center justify-between shadow-sm relative overflow-hidden group">
+          <div className="space-y-1 z-10">
+            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider block">Shortage Components</span>
+            <span className="text-2xl font-semibold text-mrp-warning block tracking-tight font-mono">{isMetricsLoading ? '...' : metrics?.components_in_shortage ?? 0}</span>
+          </div>
+          <div className="p-2.5 bg-mrp-warning/10 border border-mrp-warning/20 rounded-sm text-mrp-warning"><TrendingUp size={20} /></div>
+        </div>
       </div>
 
-
-      {/* Material Readiness Matrix */}
-      <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-sm overflow-hidden flex flex-col">
-        {/* Table Controls */}
-        <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => toast.success('Filters applied', { description: 'Showing filtered results' })}
-              className="flex items-center gap-2 px-3 py-1.5 border border-mrp-border rounded-sm bg-mrp-panel text-white text-[13px] hover:bg-mrp-border transition-colors"
-            >
-              <Filter size={14} />
-              Filter
-            </button>
-            <div className="h-4 w-px bg-mrp-border" />
-            <span className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
-              Material Readiness Matrix
-            </span>
-          </div>
-          <div className="flex gap-4 text-[11px] text-mrp-text-muted">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-mrp-danger" /> Critical Shortage
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-mrp-warning" /> Potential Delay
-            </span>
-          </div>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-mrp-panel border border-mrp-border rounded-sm p-3 shadow-sm">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" size={16} />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearchSubmit} placeholder="Search Matrix by Order ID or Target Build... (Press Enter to search)" className="w-full bg-mrp-app border border-mrp-border rounded-sm pl-9 pr-4 py-1.5 text-[13px] text-white focus:outline-none focus:border-mrp-primary placeholder:text-mrp-text-muted" />
         </div>
+        <div className="flex items-center gap-2 border border-mrp-border rounded-sm px-3 py-1.5 bg-mrp-app">
+          <Filter size={14} className="text-mrp-text-muted" />
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
+            <option value="ALL" className="bg-mrp-panel">All Readiness Status</option>
+            <option value="CLEAR_TO_BUILD" className="bg-mrp-panel">Clear (100% Allocated)</option>
+            <option value="PARTIAL" className="bg-mrp-panel">Partial Availability</option>
+            <option value="SHORTAGE" className="bg-mrp-panel">Shortage / Blocked</option>
+          </select>
+        </div>
+      </div>
 
+      <div className="bg-mrp-panel border border-mrp-border rounded-sm shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10">
+            <thead className="bg-mrp-panel border-b border-mrp-border sticky top-0 z-10 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3 w-10 text-center">
-                  <input
-                    className="rounded border-mrp-border bg-mrp-app accent-mrp-primary h-3.5 w-3.5"
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedRows(new Set(mockOrders.map((o) => o.id)))
-                        toast.success('All orders selected')
-                      } else {
-                        setSelectedRows(new Set())
-                      }
-                    }}
-                  />
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap">
-                  Order ID
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap">
-                  Target Build
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap text-right">
-                  Qty
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider whitespace-nowrap">
-                  Readiness Status
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider min-w-[200px]">
-                  Missing Components
-                </th>
-                <th className="py-3 px-4 text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right whitespace-nowrap">
-                  Actions
-                </th>
+                <th className="py-3 px-4 w-10"></th>
+                <th className="py-3 px-4">Order ID</th>
+                <th className="py-3 px-4">Target Assembly Model</th>
+                <th className="py-3 px-4 text-right">Build Qty</th>
+                <th className="py-3 px-4 text-center">Readiness Status</th>
+                <th className="py-3 px-4">Missing Components Breakdown</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-mrp-border bg-mrp-app">
-              {mockOrders.map((order) => {
-                const cfg = statusConfig[order.status]
-                const isExpanded = expandedRows.has(order.id)
-                const isSelected = selectedRows.has(order.id)
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-[13px] text-mrp-text-muted">
+                    <Loader2 className="animate-spin mx-auto mb-2 text-mrp-primary" size={24} />
+                    Calculating Material Allocation Matrix...
+                  </td>
+                </tr>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-[13px] text-mrp-text-muted">No matching production orders found.</td>
+                </tr>
+              ) : (
+                orders.map((order) => {
+                  const isExpanded = !!expandedRows[order.order_id]
+                  const hasShortage = order.status?.toLowerCase() === 'shortage' || order.status?.toLowerCase() === 'partial'
+                  const breakdownData = detailData[order.order_id] || order.deficit_breakdown
 
-                return (
-                  <React.Fragment key={order.id}>
-                    {/* Main Row */}
-                    <tr className="hover:bg-mrp-panel transition-colors group">
-                      <td className="py-3 px-3 text-center align-top">
-                        <input
-                          checked={isSelected}
-                          onChange={() => toggleSelect(order.id)}
-                          className="rounded border-mrp-border bg-mrp-app accent-mrp-primary h-3.5 w-3.5"
-                          type="checkbox"
-                        />
-                      </td>
-                      <td className="py-3 px-4 align-top font-mono text-[13px] text-white whitespace-nowrap">
-                        {order.orderId}
-                      </td>
-                      <td className="py-3 px-4 align-top text-[13px] text-white font-medium">
-                        {order.targetBuild}
-                      </td>
-                      <td className="py-3 px-4 align-top font-mono text-[13px] text-white text-right">
-                        {order.qty}
-                      </td>
-                      <td className="py-3 px-4 align-top">
-                        <div
-                          className={`inline-flex items-center gap-1.5 ${cfg.bg} border ${cfg.border} ${cfg.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${cfg.text.replace('text-', 'bg-')}${cfg.pulse ? ' animate-pulse' : ''}`}
-                          />
-                          {cfg.label}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 align-top text-[13px] text-mrp-text-secondary">
-                        {order.missingComponents}
-                      </td>
-                      <td className="py-3 px-4 align-top text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => toast.success('Pick List Printed', { description: `${order.orderId} pick list sent to printer` })}
-                            className="inline-flex items-center gap-1 px-3 py-1 border border-mrp-border text-white bg-transparent rounded-sm text-[13px] font-medium transition-colors hover:bg-mrp-border"
-                          >
-                            <Printer size={14} />
-                            Print Pick List
-                          </button>
-                          <button
-                            onClick={() => toggleRow(order.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1 border border-mrp-border text-white bg-mrp-panel rounded-sm text-[13px] font-medium transition-colors hover:bg-mrp-border"
-                          >
-                            {isExpanded ? 'Hide Components' : 'View Components'}
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Expanded Component Breakdown */}
-                    {isExpanded && order.components && (
-                      <tr key={`${order.id}-expanded`} className="bg-[#1a1c1e] shadow-inner border-b border-mrp-border">
-                        <td />
-                        <td className="py-4 px-4 pb-6" colSpan={6}>
-                          <div className="bg-mrp-panel border border-mrp-border rounded-sm p-4">
-                            <h4 className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider mb-3 border-b border-mrp-border pb-2">
-                              Component Deficit Breakdown
-                            </h4>
-                            <div className="grid grid-cols-4 gap-4 text-[13px]">
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider col-span-1">Component SKU</div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Required</div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">On-Hand</div>
-                              <div className="text-[11px] font-bold text-mrp-text-muted uppercase tracking-wider text-right">Shortage</div>
-
-                              {order.components.map((comp, idx) => (
-                                <React.Fragment key={idx}>
-                                  <div className="col-span-1 font-mono text-white border-t border-mrp-border pt-2">{comp.sku}</div>
-                                  <div className="text-right font-mono text-white border-t border-mrp-border pt-2">{comp.required}</div>
-                                  <div className="text-right font-mono text-mrp-text-muted border-t border-mrp-border pt-2">{comp.onHand}</div>
-                                  <div className={`text-right font-mono font-bold border-t border-mrp-border pt-2 ${comp.shortage > 0 ? 'text-mrp-danger' : 'text-mrp-success'}`}>
-                                    {comp.shortage}
-                                  </div>
-                                </React.Fragment>
-                              ))}
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                              <button
-                                onClick={() => toast.success('PO Generated', { description: `Purchase order created for ${order.orderId} deficits` })}
-                                className="text-mrp-primary text-[13px] font-medium hover:text-white flex items-center gap-1 transition-colors"
-                              >
-                                Generate PO for Deficits
-                                <ArrowRight size={14} />
-                              </button>
-                            </div>
-                          </div>
+                  const missingStr = breakdownData
+                    ? breakdownData
+                        .filter(c => c.is_shortage)
+                        .map(c => `${Math.max(0, c.total_required_qty - c.available_qty)}x ${c.component_sku || c.sku || c.part_id || 'UNKNOWN'}`)
+                        .join(', ')
+                    : hasShortage ? 'Expand to view shortages...' : '— Ready to Build'
+                  
+                  return (
+                    <React.Fragment key={order.order_id}>
+                      <tr 
+                        onClick={() => handleToggleRow(order.order_id)}
+                        className="hover:bg-mrp-panel/60 border-b border-mrp-border/40 transition-colors group cursor-pointer text-[13px]"
+                      >
+                        <td className="py-3 px-4 text-center">
+                          {isExpanded ? <ChevronUp size={14} className="text-mrp-text-muted" /> : <ChevronDown size={14} className="text-mrp-text-muted" />}
                         </td>
+                        <td className="py-3 px-4 font-mono font-bold text-mrp-primary">ORD-{order.order_id.substring(0, 6).toUpperCase()}</td>
+                        <td className="py-3 px-4 font-medium text-mrp-text-main">{order.target_build}</td>
+                        <td className="py-3 px-4 text-right font-mono font-medium text-white">{order.quantity}</td>
+                        <td className="py-3 px-4 text-center">{renderStatusBadge(order.status)}</td>
+                        <td className="py-3 px-4 text-mrp-text-secondary truncate max-w-xs font-mono text-[12px]">{missingStr}</td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                )
-              })}
+
+                      {isExpanded && (
+                        <tr className="bg-mrp-panel/30 border-b border-mrp-border">
+                          <td colSpan={6} className="p-4 bg-mrp-app/40 relative">
+                            <div className="border border-mrp-border/60 rounded-sm bg-mrp-panel/60 p-4 shadow-inner min-h-[120px]">
+                              <div className="flex justify-between items-center mb-4">
+                                <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Component Allocation Detail</h4>
+                              </div>
+
+                              {loadingDetails[order.order_id] ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-mrp-panel/50 z-10 rounded-sm">
+                                  <Loader2 className="animate-spin text-mrp-primary" size={24} />
+                                </div>
+                              ) : breakdownData && breakdownData.length > 0 ? (
+                                <div className="overflow-hidden border border-mrp-border rounded-sm">
+                                  <table className="w-full text-left text-[12px]">
+                                    <thead className="bg-mrp-app border-b border-mrp-border text-mrp-text-muted font-bold uppercase tracking-wider text-[11px]">
+                                      <tr>
+                                        <th className="p-2.5">Component SKU</th>
+                                        <th className="p-2.5 text-right">Required</th>
+                                        <th className="p-2.5 text-right">On-Hand</th>
+                                        <th className="p-2.5 text-right">Shortage</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-mrp-border/60 font-mono">
+                                      {breakdownData.map((comp, idx) => {
+                                        const deficit = Math.max(0, comp.total_required_qty - comp.available_qty)
+                                        const displaySku = comp.component_sku || comp.sku || comp.part_id || 'UNKNOWN'
+                                        return (
+                                          <tr key={idx} className="hover:bg-mrp-app/30">
+                                            <td className="p-2.5 text-white">{displaySku}</td>
+                                            <td className="p-2.5 text-right text-white">{comp.total_required_qty}</td>
+                                            <td className="p-2.5 text-right text-mrp-text-secondary">{comp.available_qty}</td>
+                                            <td className={`p-2.5 text-right font-bold ${comp.is_shortage ? 'text-mrp-danger' : 'text-mrp-success'}`}>
+                                              {comp.is_shortage ? deficit : '0'}
+                                            </td>
+                                          </tr>
+                                        )
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div className="text-center py-4 text-[12px] text-mrp-text-muted italic">No breakdown details returned from server.</div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between">
-          <span className="text-[13px] text-mrp-text-muted">Showing 1-4 of 4 Orders</span>
-          <div className="flex items-center gap-6">
+        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
+          <span className="text-[13px] text-mrp-text-muted">
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{Math.min(page * perPage, totalItems)} of {totalItems} Entries
+          </span>
+          <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] text-mrp-text-muted">Rows per page:</span>
-              <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
-                <option>10</option>
-                <option>20</option>
-                <option>50</option>
+              <span>Rows per page:</span>
+              <select 
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
               </select>
             </div>
-            <div className="flex items-center gap-2 text-[13px] text-mrp-text-secondary">
-              Page
-              <select className="border border-mrp-border rounded-sm bg-mrp-app text-white text-[13px] py-1 pl-2 pr-8 focus:border-mrp-primary focus:outline-none">
-                <option>1</option>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-2">
+              <span>Page</span>
+              <select 
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
               </select>
-              of 1
+              <span>of {totalPages}</span>
             </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
             <div className="flex items-center gap-1">
-              <button className="p-1 rounded-sm text-mrp-text-muted hover:bg-mrp-border transition-colors disabled:opacity-50" disabled>
-                <ChevronUp size={16} className="rotate-[-90deg]" />
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
               </button>
-              <button className="p-1 rounded-sm text-mrp-text-muted hover:bg-mrp-border transition-colors disabled:opacity-50" disabled>
-                <ChevronDown size={16} className="rotate-[-90deg]" />
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { 
   Search, Filter, Calendar, X, Lock, Unlock, 
-  MapPin, Package, ShoppingCart, DollarSign, CheckCircle, Factory, Loader2 
+  MapPin, Package, ShoppingCart, DollarSign, CheckCircle, Factory, Loader2, ChevronLeft, ChevronRight 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiGet, apiPost, apiPatch } from '@/lib/axios.client'
@@ -35,24 +35,37 @@ const statusConfig: Record<string, any> = {
 }
 
 export function SalesOrdersView() {
-  const [metrics, setMetrics] = useState<MetricsModel>({ total_pending: 0, active_processing_value: 0, completed_24h: 0 })
-  const [orders, setOrders] = useState<OrderModel[]>([])
+  const [metrics, setMetrics] = useState<any>({ total_pending: 0, active_processing_value: 0, completed_24h: 0 })
+  const [orders, setOrders] = useState<any[]>([])
   
   const [isLoading, setIsLoading] = useState(true)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   
   const [filterState, setFilterState] = useState('ALL')
-  const [selectedOrder, setSelectedOrder] = useState<OrderModel | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
+
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [totalItems, setTotalItems] = useState(0)
 
   const fetchDashboardData = async () => {
     setIsLoading(true)
     try {
+      const params: any = { page, pageSize: perPage } 
+      if (filterState !== 'ALL') params.states = filterState
+      if (searchQuery.trim() !== '') params.search = searchQuery
+
       const [metricsRes, ordersRes] = await Promise.all([
-        apiGet<MetricsModel>('/sales/metrics'),
-        apiGet<OrderModel[]>('/sales/orders', { params: { states: filterState === 'ALL' ? undefined : filterState } })
+        apiGet<any>('/sales/metrics'),
+        apiGet<any>('/sales/orders', { params })
       ])
+      
       if (metricsRes.data) setMetrics(metricsRes.data)
-      setOrders(ordersRes.data || [])
+      
+      const dataList = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data?.data || [])
+      setOrders(dataList)
+      setTotalItems(ordersRes.metadata?.total || ordersRes.data?.metadata?.total || dataList.length)
     } catch (error) {
       toast.error('Failed to load data', { description: 'Unable to connect to the server.' })
     } finally {
@@ -60,7 +73,14 @@ export function SalesOrdersView() {
     }
   }
 
-  useEffect(() => { fetchDashboardData() }, [filterState])
+  useEffect(() => { fetchDashboardData() }, [filterState, page, perPage])
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setPage(1)
+      fetchDashboardData()
+    }
+  }
 
   const handleSelectOrder = async (order: OrderModel) => {
     setSelectedOrder(order)
@@ -105,6 +125,8 @@ export function SalesOrdersView() {
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0)
 
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
+
   return (
     <>
       <div className="mb-6">
@@ -112,7 +134,6 @@ export function SalesOrdersView() {
         <p className="text-sm text-mrp-text-secondary mt-1">Monitor inbound client demand, track lifecycle states, and resolve concurrency locks.</p>
       </div>
 
-      {/* KPI METRICS TỪ API */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-mrp-panel border border-mrp-border p-4 rounded-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -141,17 +162,25 @@ export function SalesOrdersView() {
         <div className="px-4 py-3 border-b border-mrp-border bg-mrp-app flex flex-wrap items-center gap-4">
           <div className="relative w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-mrp-text-muted" />
-            <input type="text" placeholder="Search by Client ID or Name..." className="w-full bg-mrp-panel border border-mrp-border rounded-sm text-[13px] pl-9 pr-3 py-1.5 focus:outline-none focus:border-mrp-primary text-white placeholder-mrp-text-muted" />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchSubmit}
+              placeholder="Search by ID or Name (Press Enter)..." 
+              className="w-full bg-mrp-panel border border-mrp-border rounded-sm text-[13px] pl-9 pr-3 py-1.5 focus:outline-none focus:border-mrp-primary text-white placeholder-mrp-text-muted" 
+            />
           </div>
           
           <div className="flex items-center border border-mrp-border bg-mrp-panel rounded-sm px-2 py-1.5">
             <Filter size={14} className="text-mrp-text-muted mr-2" />
-            <select value={filterState} onChange={(e) => setFilterState(e.target.value)} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
+            <select value={filterState} onChange={(e) => { setFilterState(e.target.value); setPage(1); }} className="bg-transparent text-[13px] text-white focus:outline-none cursor-pointer">
               <option value="ALL" className="bg-mrp-panel">All States</option>
               <option value="PENDING" className="bg-mrp-panel">Pending</option>
               <option value="PROCESSING" className="bg-mrp-panel">Processing</option>
               <option value="DELIVERING" className="bg-mrp-panel">Delivering</option>
               <option value="COMPLETED" className="bg-mrp-panel">Completed</option>
+              <option value="CANCELLED" className="bg-mrp-panel">Cancelled</option>
             </select>
           </div>
         </div>
@@ -177,7 +206,9 @@ export function SalesOrdersView() {
                 const cfg = statusConfig[order.status] || statusConfig['PENDING']
                 return (
                   <tr key={order.orderId} onClick={() => handleSelectOrder(order)} className="hover:bg-mrp-panel transition-colors cursor-pointer group">
-                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary group-hover:underline truncate max-w-[120px]">{order.orderId}</td>
+                    <td className="py-3 px-4 font-mono text-[13px] text-mrp-primary group-hover:underline truncate max-w-[120px]">
+                      ORD-{String(order.orderId).substring(0, 6).toUpperCase()}
+                    </td>
                     <td className="py-3 px-4 text-[13px] text-white font-medium">{order.clientName}</td>
                     <td className="py-3 px-4 font-mono text-[13px] text-mrp-text-secondary">{new Date(order.requiredDate).toLocaleDateString()}</td>
                     <td className="py-3 px-4 font-mono text-[13px] text-white text-right">{formatCurrency(order.totalValue)}</td>
@@ -195,6 +226,58 @@ export function SalesOrdersView() {
             </tbody>
           </table>
         </div>
+
+        <div className="px-4 py-3 border-t border-mrp-border bg-mrp-panel flex items-center justify-between shrink-0">
+          <span className="text-[13px] text-mrp-text-muted">
+            Showing {totalItems === 0 ? 0 : (page - 1) * perPage + 1}–{(page - 1) * perPage + orders.length} of {totalItems} Entries
+          </span>
+          <div className="flex items-center gap-4 text-[13px] text-mrp-text-muted">
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <select 
+                value={perPage}
+                onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-2">
+              <span>Page</span>
+              <select 
+                value={page}
+                onChange={(e) => setPage(Number(e.target.value))}
+                className="bg-mrp-app border border-mrp-border rounded-sm focus:outline-none focus:border-mrp-primary px-1 py-0.5 text-white cursor-pointer"
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <span>of {totalPages}</span>
+            </div>
+            <div className="w-px h-4 bg-mrp-border"></div>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 disabled:opacity-30 hover:text-white transition-colors cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {selectedOrder && (
@@ -205,7 +288,7 @@ export function SalesOrdersView() {
               <div className="min-w-0 pr-4">
                 <div className="flex items-center gap-3 mb-1">
                   <h2 className="text-xl font-bold text-white font-mono truncate">
-                    {String(selectedOrder.orderId || '').substring(0,8)}...
+                    ORD-{String(selectedOrder.orderId).substring(0, 6).toUpperCase()}
                   </h2>
                   <div className={`inline-flex shrink-0 items-center gap-1.5 ${statusConfig[selectedOrder.status]?.bg} border ${statusConfig[selectedOrder.status]?.border} ${statusConfig[selectedOrder.status]?.text} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider`}>
                     {statusConfig[selectedOrder.status]?.label}
