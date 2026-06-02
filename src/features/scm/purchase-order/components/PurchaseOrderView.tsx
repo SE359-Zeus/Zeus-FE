@@ -3,10 +3,13 @@
 import React, { useState } from 'react'
 import {
   Download, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
-  Check, Filter, CheckCircle, Truck, X, Trash2, Loader2, ShieldAlert, Info,
+  Check, Filter, CheckCircle, Truck, X, Trash2, Loader2, ShieldAlert, Info, ChevronsUpDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 
 import { useAuthStore, apiGet } from '@/lib'
 import {
@@ -213,6 +216,7 @@ export function PurchaseOrderView() {
   const [showCreatePO, setShowCreatePO] = useState(false)
   const [poForm, setPoForm] = useState({ poNumber: '', supplier: '', deliveryDate: '', notes: '', targetBuild: '' })
   const [formItems, setFormItems] = useState<FormLineItem[]>([])
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
 
   // poForm.supplier now stores the vendor UUID (not the display name)
   const selectedSupplier = liveSuppliers.find(s => s.id === poForm.supplier)
@@ -244,6 +248,7 @@ export function PurchaseOrderView() {
   const resetForm = () => {
     setPoForm({ poNumber: '', supplier: '', deliveryDate: '', notes: '', targetBuild: '' })
     setFormItems([])
+    setOpenDropdown(null)
   }
 
   const handleSavePO = () => {
@@ -734,8 +739,8 @@ export function PurchaseOrderView() {
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-mrp-app border-b border-mrp-border">
                         <tr>
-                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[45%]">SKU</th>
-                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[15%]">Qty</th>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[40%]">SKU</th>
+                          <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[20%]">Qty</th>
                           <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[20%] text-right">Unit Price</th>
                           <th className="py-2 px-3 text-[10px] font-bold text-mrp-text-muted uppercase tracking-wider w-[15%] text-right">Total</th>
                           <th className="w-8" />
@@ -746,45 +751,92 @@ export function PurchaseOrderView() {
                           const skuInfo = supplierSkus.find(s => s.sku === item.sku)
                           return (
                             <tr key={idx} className="bg-mrp-app/50">
-                              <td className="py-2 px-3">
-                                <select
-                                  value={item.sku}
-                                  onChange={(e) => updateFormItem(idx, { sku: e.target.value })}
-                                  disabled={createCustomMutation.isPending}
-                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <option value="">Select SKU...</option>
-                                  {supplierSkus.map(s => (
-                                    <option key={s.sku} value={s.sku}
-                                      disabled={formItems.some((fi, fi_idx) => fi_idx !== idx && fi.sku === s.sku)}
+                              <td className="py-2 px-3 w-[40%] max-w-[200px] align-top">
+                                <Popover open={openDropdown === idx} onOpenChange={(open) => setOpenDropdown(open ? idx : null)}>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      disabled={createCustomMutation.isPending}
+                                      className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1.5 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between text-left"
                                     >
-                                      {s.sku} — {s.description}
-                                    </option>
-                                  ))}
-                                </select>
-                                {skuInfo && <p className="text-[10px] text-mrp-text-muted mt-0.5 truncate">{skuInfo.description}</p>}
+                                      <span className="truncate pr-2">
+                                        {item.sku 
+                                          ? `${item.sku} — ${skuInfo?.description || ''}` 
+                                          : 'Select SKU...'}
+                                      </span>
+                                      <ChevronsUpDown className="h-3 w-3 opacity-50 flex-shrink-0" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-[300px] p-0 bg-mrp-panel border-mrp-border text-white" align="start">
+                                    <Command 
+                                      className="bg-transparent text-white"
+                                      filter={(value, search) => {
+                                        if (value.toLowerCase().startsWith(search.toLowerCase())) return 1;
+                                        return 0;
+                                      }}
+                                    >
+                                      <CommandInput placeholder="Search SKU..." className="text-[12px] text-white border-none focus:ring-0 outline-none" />
+                                      <CommandList className="max-h-[200px]">
+                                        <CommandEmpty className="py-6 text-[12px] text-mrp-text-muted text-center">No SKU found.</CommandEmpty>
+                                        <CommandGroup>
+                                          {supplierSkus.map(s => {
+                                            const isDisabled = formItems.some((fi, fi_idx) => fi_idx !== idx && fi.sku === s.sku)
+                                            return (
+                                              <CommandItem
+                                                key={s.sku}
+                                                value={s.sku}
+                                                disabled={isDisabled}
+                                                onSelect={() => {
+                                                  if (!isDisabled) {
+                                                    updateFormItem(idx, { sku: s.sku })
+                                                    setOpenDropdown(null)
+                                                  }
+                                                }}
+                                                className={`text-[12px] text-white data-[selected=true]:bg-mrp-border data-[selected=true]:text-white ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                              >
+                                                <div className="flex flex-col w-full overflow-hidden">
+                                                  <div className="flex items-center w-full">
+                                                    <Check className={`mr-2 h-3 w-3 flex-shrink-0 ${item.sku === s.sku ? "opacity-100" : "opacity-0"}`} />
+                                                    <span className="font-mono truncate">{s.sku}</span>
+                                                  </div>
+                                                  <span className="text-[10px] text-mrp-text-muted truncate pl-5">
+                                                    {s.description}
+                                                  </span>
+                                                </div>
+                                              </CommandItem>
+                                            )
+                                          })}
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
+                                {skuInfo && <p className="text-[10px] text-mrp-text-muted mt-1 truncate" title={skuInfo.description}>{skuInfo.description}</p>}
                               </td>
-                              <td className="py-2 px-3">
+                              <td className="py-2 px-3 align-top">
                                 <input
                                   type="number" min={1} value={item.qty}
                                   onChange={(e) => updateFormItem(idx, { qty: Math.max(1, Number(e.target.value)) })}
                                   disabled={createCustomMutation.isPending}
-                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="w-full bg-mrp-app border border-mrp-border text-white px-2 py-1.5 text-[12px] focus:border-mrp-primary focus:outline-none rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                               </td>
-                              <td className="py-2 px-3 text-right">
-                                <span className={`font-mono text-[12px] ${item.sku ? 'text-white' : 'text-mrp-text-muted'}`}>
-                                  {item.sku ? fmt(item.unitPrice) : '—'}
-                                </span>
+                              <td className="py-2 px-3 text-right align-top">
+                                <div className="mt-1.5 font-mono text-[12px] inline-block">
+                                  <span className={item.sku ? 'text-white' : 'text-mrp-text-muted'}>
+                                    {item.sku ? fmt(item.unitPrice) : '—'}
+                                  </span>
+                                </div>
                               </td>
-                              <td className="py-2 px-3 font-mono text-[12px] text-white text-right whitespace-nowrap">
-                                {fmt(item.qty * item.unitPrice)}
+                              <td className="py-2 px-3 text-right whitespace-nowrap align-top">
+                                <div className="mt-1.5 font-mono text-[12px] text-white inline-block">
+                                  {fmt(item.qty * item.unitPrice)}
+                                </div>
                               </td>
-                              <td className="py-2 px-2 text-center">
+                              <td className="py-2 px-2 text-center align-top">
                                 <button
                                   onClick={() => removeFormItem(idx)}
                                   disabled={createCustomMutation.isPending}
-                                  className="text-mrp-text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                                  className="mt-1.5 text-mrp-text-muted hover:text-red-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                 >
                                   <Trash2 size={14} />
                                 </button>
